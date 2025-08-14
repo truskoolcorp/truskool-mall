@@ -1,68 +1,63 @@
-// src/main.js (top of file)
+// src/main.js — local-only imports (no CDNs)
 import * as THREE from '/vendor/three/three.module.js';
 import { OrbitControls } from '/vendor/three/OrbitControls.js';
 import { GLTFLoader } from '/vendor/three/GLTFLoader.js';
 
-// (the rest of your file stays the same)
-// Make sure somewhere after init you hide the loader:
-const hideLoader = () => document.getElementById('loader')?.classList.add('hide');
+// ------- small helpers -------
+const $ = (sel) => document.querySelector(sel);
+const hideLoader = () => $('#loader')?.classList.add('hide');
+const setLoaderText = (t) => { const el = $('#loaderMsg'); if (el) el.textContent = t; };
 
-// --- Minimal UI hooks (optional) ---
-const loaderEl = document.getElementById('loader');
-const loaderMsg = document.querySelector('.load-msg');
-const showErr = (m) => { if (loaderMsg) loaderMsg.textContent = m; };
+// ------- scene / renderer -------
+const canvas = $('#three');
+if (!canvas) throw new Error('Canvas #three not found');
 
-// ---------- Load three.js with CDN -> CDN -> Local fallback ----------
-async function loadThree() {
-  const cdns = [
-    'https://unpkg.com',
-    'https://cdn.jsdelivr.net/npm'
-  ];
-  let last;
-
-  for (const base of cdns) {
-    try {
-      const THREE = await import(`${base}/three@0.159.0/build/three.module.js`);
-      const OrbitControls = await import(`${base}/three@0.159.0/examples/jsm/controls/OrbitControls.js`);
-      const GLTFLoader = await import(`${base}/three@0.159.0/examples/jsm/loaders/GLTFLoader.js`);
-      return { THREE, OrbitControls, GLTFLoader };
-    } catch (e) { last = e; }
-  }
-
-  // Local vendor fallback (works even if CDNs are blocked)
-  try {
-    const THREE = await import('/vendor/three/three.module.js');
-    const OrbitControls = await import('/vendor/three/OrbitControls.js');
-    const GLTFLoader = await import('/vendor/three/GLTFLoader.js');
-    return { THREE, OrbitControls, GLTFLoader };
-  } catch (e) { last = e; }
-
-  throw last ?? new Error('three.js load failed');
-}
-
-let THREE, OrbitControlsNS, GLTFLoaderNS;
-try {
-  ({ THREE, OrbitControls: OrbitControlsNS, GLTFLoader: GLTFLoaderNS } = await loadThree());
-} catch (e) {
-  console.error('Error loading 3D libs', e);
-  showErr('Error loading 3D libs. If you use an ad/script blocker, allow unpkg.com & jsdelivr.net — fallback to /vendor will be used.');
-  throw e;
-}
-
-// Named exports from the modules
-const OrbitControls = OrbitControlsNS.OrbitControls;
-const GLTFLoader = GLTFLoaderNS.GLTFLoader;
-
-// ---------- Renderer / Scene ----------
-const canvas = document.getElementById('three');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0d0f12);
+scene.background = new THREE.Color(0x0c0c0f);
 
-const camera = new THREE.PerspectiveCamera(55, window.innerWidt
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 2.4, 8);
+scene.add(camera);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.4, 0);
+controls.enableDamping = true;
+controls.minDistance = 3;
+controls.maxDistance = 20;
+controls.maxPolarAngle = Math.PI * 0.49;
+
+// ------- lights -------
+const hemi = new THREE.HemisphereLight(0xddeeff, 0x0b0b10, 0.6);
+scene.add(hemi);
+
+const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+dir.position.set(5, 8, 4);
+dir.castShadow = true;
+dir.shadow.mapSize.set(1024, 1024);
+dir.shadow.camera.near = 0.5;
+dir.shadow.camera.far = 50;
+scene.add(dir);
+
+const rim = new THREE.SpotLight(0x6aa0ff, 0.8, 20, Math.PI / 6, 0.4, 1.5);
+rim.position.set(-6, 6, -2);
+rim.target.position.set(0, 1.3, 0);
+rim.castShadow = true;
+scene.add(rim);
+scene.add(rim.target);
+
+// ------- ground -------
+const ggeo = new THREE.CircleGeometry(20, 96);
+const gmat = new THREE.MeshStandardMaterial({ color: 0x111214, roughness: 0.95, metalness: 0.0 });
+const ground = new THREE.Mesh(ggeo, gmat);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ------- portal model (optional) --
