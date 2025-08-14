@@ -15,9 +15,30 @@
   },
   {
     "id": "cafe-sativa",
-    "name": "Caf\u00e9 Sativa",
+    "name": "Café Sativa",
     "logo": "/assets/images/cafe-sativa.png",
     "link": "https://cafe-sativa-llc-uzn6.b12sites.com/",
     "color": "#56a06a"
+  },
+  {
+    "id": "tru-skool",
+    "name": "Tru Skool Entertainment",
+    "logo": "/assets/images/tru-skool.png",
+    "link": "https://truskool.net", 
+    "color": "#00c2ff"
+  },
+  {
+    "id": "wanderlust",
+    "name": "Wanderlust (Dallasite on Tour)",
+    "logo": "/assets/images/wanderlust.png",
+    "link": "https://youtube.com/@dallasiteontour", 
+    "color": "#ff8a00"
+  },
+  {
+    "id": "hoe",
+    "name": "H.O.E. — Happiness Over Everything",
+    "logo": "/assets/images/hoe.png",
+    "link": "https://truskool.net/hoe", 
+    "color": "#ff3ca6"
   }
 ]
