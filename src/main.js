@@ -1,166 +1,204 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+// --- Pure ESM, no bundler, CDN modules only (no local vendor paths) ---
+import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.159.0/examples/jsm/controls/OrbitControls.js';
 
-const $ = (sel) => document.querySelector(sel);
-const showErr = (msg) => { const l = $('#loader'); l.classList.remove('hide'); l.querySelector('.load-msg').textContent = msg; }
-const hideLoader = () => $('#loader').classList.add('hide');
+// UI helpers
+const $ = (s) => document.querySelector(s);
+const loader = $('#loader');
+const loadMsg = $('#loadMsg');
+const chips = $('#chips');
 
-// Build chips
-async function buildChips(stores){
-  const row = $('#chipRow');
-  for (const s of stores){
-    const chip = document.createElement('div');
-    chip.className = 'chip';
-    chip.innerHTML = `<span class="dot" style="background:${s.color}"></span>${s.name}`;
-    chip.onclick = () => window.open(s.link, '_blank');
-    row.appendChild(chip);
+function hideLoader() {
+  loader.style.opacity = '0';
+  loader.style.visibility = 'hidden';
+  loader.style.transition = 'opacity .25s ease';
+  setTimeout(() => (loader.style.display = 'none'), 300);
+}
+
+// Fetch stores (fall back to inline defaults if fetch fails)
+async function getStores() {
+  try {
+    const res = await fetch('/src/stores.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('stores.json not found');
+    return await res.json();
+  } catch {
+    return [
+      { id: 'faithfully-faded', name: 'Faithfully Faded', logo: '', color: '#213a8f', link: '#' },
+      { id: 'concrete-rose',   name: 'Concrete Rose',   logo: '', color: '#bb3a45', link: '#' },
+      { id: 'cafe-sativa',     name: 'Café Sativa',     logo: '', color: '#56a06a', link: '#' }
+    ];
   }
 }
 
-async function init(){
-  try{
-    const res = await fetch('/src/stores.json', {cache:'no-cache'});
-    if (!res.ok) throw new Error('Failed to load stores.json');
-    const STORES = await res.json();
-    await buildChips(STORES);
+// Create a texture from text (used if an image is missing)
+function textTexture(text, color='#fff', bg='#0f1117') {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 512;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,c.width,c.height);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 56px system-ui, Segoe UI, Roboto';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, c.width/2, c.height/2);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
-    // Renderer
+// Load an image texture with graceful fallback
+function loadLogoTexture(url, fallbackLabel, accent) {
+  return new Promise((resolve) => {
+    if (!url) return resolve(textTexture(fallbackLabel, '#fff', '#151821'));
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      url,
+      (tex) => { tex.colorSpace = THREE.SRGBColorSpace; resolve(tex); },
+      undefined,
+      () => resolve(textTexture(fallbackLabel, '#fff', '#151821'))
+    );
+  });
+}
+
+// Main
+(async function start() {
+  try {
+    const STORES = await getStores();
+
+    // Build chips
+    chips.innerHTML = '';
+    for (const s of STORES) {
+      const el = document.createElement('div');
+      el.className = 'chip';
+      el.innerHTML = `<span class="dot" style="background:${s.color}"></span><span>${s.name}</span>`;
+      el.onclick = () => window.open(s.link, '_blank');
+      chips.appendChild(el);
+    }
+
+    // Three.js scene
     const canvas = $('#three');
-    const renderer = new THREE.WebGLRenderer({ antialias:true, canvas, alpha:false });
-    renderer.setSize(innerWidth, innerHeight);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.setClearColor(0x0c0c0f, 1);
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // Scene & camera
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0c10);
+
     const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 200);
-    camera.position.set(0, 6, 14);
+    camera.position.set(0, 3, 10);
     scene.add(camera);
 
-    // Lights (bright, studio-like)
-    const hemi = new THREE.HemisphereLight(0xf0f5ff, 0x080810, 0.8);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 1.5, 0);
+
+    // Lights: soft HDR-ish feel
+    const hemi = new THREE.HemisphereLight(0xdde8ff, 0x101214, 0.6);
     scene.add(hemi);
+
     const key = new THREE.DirectionalLight(0xffffff, 1.2);
-    key.position.set(8,12,6);
+    key.position.set(5, 8, 5);
     key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
     scene.add(key);
-    const rim = new THREE.DirectionalLight(0x88aaff, 0.5);
-    rim.position.set(-6,6,-8);
+
+    const rim = new THREE.DirectionalLight(0x88aaff, 0.35);
+    rim.position.set(-7, 5, -6);
     scene.add(rim);
-    const fill = new THREE.AmbientLight(0x22263a, 0.6);
-    scene.add(fill);
 
     // Ground
     const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(24, 64),
-      new THREE.MeshStandardMaterial({ color: 0x101114, roughness: 0.95, metalness: 0.05 })
+      new THREE.CircleGeometry(20, 64),
+      new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.95, metalness: 0.05 })
     );
     ground.rotation.x = -Math.PI/2;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Materials & textures
-    const loader = new THREE.TextureLoader();
-    function makeSign(store, angle){
-      const group = new THREE.Group();
-      group.userData = { link: store.link };
+    // Create sign for each store
+    const radius = 7.5;
+    const y = 1.6;
+    const group = new THREE.Group();
+    scene.add(group);
 
-      // Simple frame
-      const frame = new THREE.Mesh(
-        new THREE.BoxGeometry(0.15, 2.0, 0.15),
-        new THREE.MeshStandardMaterial({ color: 0x3a3d47, metalness: 0.2, roughness: 0.9 })
-      );
-      frame.position.set(-0.9, 1.0, 0);
-      const frame2 = frame.clone(); frame2.position.x = 0.9;
+    const signGeo = new THREE.PlaneGeometry(2.2, 1.4);
+    const standMat = new THREE.MeshStandardMaterial({ color: 0x2b2f38, roughness: 0.9, metalness: 0.1 });
 
-      const cross = new THREE.Mesh(
-        new THREE.BoxGeometry(1.8, 0.12, 0.15),
-        frame.material
-      );
-      cross.position.set(0, 2.0, 0);
+    const signs = [];
+    for (let i=0;i<STORES.length;i++){
+      const s = STORES[i];
+      const ang = (i / STORES.length) * Math.PI * 2 + Math.PI * 0.07;
 
-      // Panel
-      const plane = new THREE.PlaneGeometry(2.0, 1.6);
-      const color = new THREE.Color(store.color || '#4466aa');
-      const panelMat = new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.05 });
-      const panel = new THREE.Mesh(plane, panelMat);
-      panel.position.set(0, 1.4, 0.09);
+      // sign panel
+      const tex = await loadLogoTexture(s.logo, s.name, s.color);
+      const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7, metalness: 0.1 });
+      const panel = new THREE.Mesh(signGeo, mat);
+      panel.position.set(Math.cos(ang)*radius, y, Math.sin(ang)*radius);
+      panel.lookAt(0, y, 0);
+      panel.castShadow = true;
 
-      // Logo texture if available
-      const tex = loader.load(store.logo, () => { renderer.render(scene, camera); });
-      tex.colorSpace = THREE.SRGBColorSpace;
-      const logo = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.6, 1.1),
-        new THREE.MeshBasicMaterial({ map: tex, transparent: true })
-      );
-      logo.position.set(0, 1.45, 0.1);
+      // simple stand
+      const legGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.6, 12);
+      const leg1 = new THREE.Mesh(legGeo, standMat);
+      const leg2 = leg1.clone();
+      const up = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.1, 0.1), standMat);
+      leg1.position.copy(panel.position).add(new THREE.Vector3( 0.6, y-1.2, 0.2));
+      leg2.position.copy(panel.position).add(new THREE.Vector3(-0.6, y-1.2, 0.2));
+      up.position.copy(panel.position).add(new THREE.Vector3(0, y-0.35, 0.05));
+      [leg1, leg2, up].forEach(m => { m.lookAt(0, y, 0); m.castShadow = true; m.receiveShadow = true; });
 
-      group.add(frame, frame2, cross, panel, logo);
+      const set = new THREE.Group();
+      set.add(panel, leg1, leg2, up);
+      group.add(set);
 
-      const radius = 10.5;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      group.position.set(x, 0, z);
-      group.lookAt(0, 1.4, 0);
-      return group;
+      // small accent light per brand
+      const accent = new THREE.PointLight(new THREE.Color(s.color), 0.6, 6, 2);
+      accent.position.copy(panel.position).add(new THREE.Vector3(0, 0, 0.6));
+      scene.add(accent);
+
+      // store metadata
+      set.userData = { link: s.link, name: s.name, color: s.color, panel };
+
+      signs.push(set);
     }
 
-    // Add signs in a ring
-    const nodes = [];
-    STORES.forEach((s, i) => {
-      const a = (i / STORES.length) * Math.PI * 2;
-      const g = makeSign(s, a);
-      nodes.push(g);
-      scene.add(g);
-    });
-
-    // Raycaster for clicks
-    const raycaster = new THREE.Raycaster();
+    // Raycast click
+    const ray = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
-    function onClick(ev){
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      const targets = [];
-      nodes.forEach(n => n.traverse(o => { if (o.isMesh) targets.push(o)}));
-      const hit = raycaster.intersectObjects(targets, true)[0];
+    function onPointer(e){
+      const rect = renderer.domElement.getBoundingClientRect();
+      const x = ( (e.clientX - rect.left) / rect.width ) * 2 - 1;
+      const y = -( (e.clientY - rect.top) / rect.height ) * 2 + 1;
+      mouse.set(x,y);
+      ray.setFromCamera(mouse, camera);
+      const panels = signs.map(s=>s.userData.panel);
+      const hit = ray.intersectObjects(panels, false)[0];
       if (hit){
-        let p = hit.object;
-        while (p && !p.userData?.link) p = p.parent;
-        if (p?.userData?.link) window.open(p.userData.link, "_blank");
+        const g = hit.object.parent;
+        const url = g.userData?.link;
+        if (url) window.open(url, '_blank');
       }
     }
-    canvas.addEventListener('click', onClick);
+    renderer.domElement.addEventListener('click', onPointer);
 
-    // Controls
-    const controls = new OrbitControls(camera, canvas);
-    controls.target.set(0, 1.4, 0);
-    controls.minDistance = 6;
-    controls.maxDistance = 26;
-    controls.maxPolarAngle = Math.PI/2.1;
-    controls.enableDamping = true;
-
-    // Handle resize
+    // Resize
     addEventListener('resize', () => {
       camera.aspect = innerWidth/innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight);
     });
 
+    // Kick
     hideLoader();
-
-    // Render loop
-    function tick(){
+    renderer.setAnimationLoop(() => {
       controls.update();
       renderer.render(scene, camera);
-      requestAnimationFrame(tick);
-    }
-    tick();
-  }catch(e){
-    console.error(e);
-    showErr('Error starting app (see console)');
+    });
+  } catch (err) {
+    console.error(err);
+    loadMsg.textContent = 'Error starting app (see console)';
   }
-}
-
-init();
+})();
