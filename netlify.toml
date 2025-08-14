@@ -1,7 +1,8 @@
+[build]
+  publish = "."
+
+# Make sure ES Modules are served correctly (Netlify does this by default).
 [[headers]]
   for = "/*"
   [headers.values]
-    # Allow our script modules and JSON; include trusted CDNs for three.js
-    Content-Security-Policy = "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com 'unsafe-inline'; worker-src 'self' blob:; object-src 'none'"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "no-referrer-when-downgrade"
+  X-Content-Type-Options = "nosniff"

@@ -1,208 +1,166 @@
-// Virtual Tru Skool Mall – turnkey
-const $ = s => document.querySelector(s);
-const loader = $('#loader');
-const loaderMsg = $('#loaderMsg');
-const chipRow = $('#chipRow');
+import * as THREE from '/vendor/three/three.module.js';
+import { OrbitControls } from '/vendor/three/OrbitControls.js';
+// GLTFLoader import kept for future portals; not required to run
+// import { GLTFLoader } from '/vendor/three/GLTFLoader.js';
+import { openLink } from '/scripts/open.js';
 
-function showErr(msg){ loaderMsg.textContent = msg; }
-function hideLoader(){ loader.classList.add('hide'); }
+const sel = (q)=>document.querySelector(q);
+const chipRow = sel('#chipRow');
+const loaderEl = sel('#loader');
+const loaderMsg = sel('#loaderMsg');
 
-async function loadThree() {
-  const cdnBases = ['https://cdn.jsdelivr.net/npm','https://unpkg.com'];
-  const ver = 'three@0.159.0';
-  let last;
-  for (const base of cdnBases) {
-    try {
-      const THREE = await import(`${base}/${ver}/build/three.module.js`);
-      const OrbitControls = (await import(`${base}/${ver}/examples/jsm/controls/OrbitControls.js`)).OrbitControls;
-      const GLTFLoader = (await import(`${base}/${ver}/examples/jsm/loaders/GLTFLoader.js`)).GLTFLoader;
-      return { THREE, OrbitControls, GLTFLoader };
-    } catch (e) { last = e; }
-  }
-  throw last;
+// ---- UI: brand chips ----
+async function loadStores(){
+  const res = await fetch('/src/stores.json', {cache:'no-cache'});
+  if (!res.ok) throw new Error('stores.json not found');
+  return await res.json();
 }
-
-function makeTextCanvas(text, color = '#fff') {
-  const pad = 12, fs = 42;
-  const c = document.createElement('canvas'), g = c.getContext('2d');
-  g.font = `600 ${fs}px system-ui, Segoe UI, Roboto`;
-  const w = Math.ceil(g.measureText(text).width) + pad*2;
-  const h = fs + pad*2;
-  c.width = w; c.height = h;
-  g.fillStyle = '#101217'; g.fillRect(0,0,w,h);
-  g.fillStyle = color; g.font = `600 ${fs}px system-ui, Segoe UI, Roboto`;
-  g.textBaseline = 'top'; g.fillText(text, pad, pad);
-  return c;
-}
-
 function buildChips(stores){
-  chipRow.innerHTML = '';
-  for(const s of stores){
-    const el = document.createElement('button');
+  chipRow.textContent = '';
+  for (const s of stores){
+    const el = document.createElement('div');
     el.className = 'chip';
-    el.innerHTML = `<span class="dot" style="background:${s.color||'#6aa0ff'}"></span><span>${s.name}</span>`;
-    el.onclick = () => window.open(s.link, '_blank', 'noopener');
-    el.title = s.link;
+    el.innerHTML = `<span class="dot" style="background:${s.color}"></span><span>${s.name}</span>`;
+    el.onclick = ()=> openLink(s.link);
     chipRow.appendChild(el);
   }
 }
 
-async function main(){
-  loaderMsg.textContent = 'Loading 3D libraries…';
-  let THREE, OrbitControls;
-  try {
-    ({ THREE, OrbitControls } = await loadThree());
-  } catch (e) {
-    console.error(e);
-    showErr('Error loading 3D libs. Disable ad/script blockers or refresh.');
-    return;
-  }
+// ---- 3D Scene ----
+const canvas = sel('#three');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
 
-  loaderMsg.textContent = 'Loading brands…';
-  let stores = [];
-  try {
-    stores = await fetch('/src/stores.json').then(r => r.json());
-  } catch (e) {
-    console.error('Failed to load stores.json', e);
-    showErr('Could not load brands list (stores.json).');
-    return;
-  }
-  buildChips(stores);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0c10);
 
-  const canvas = $('#three');
-  const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1.5));
-  renderer.setSize(window.innerWidth, window.innerHeight, false);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// Camera
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 3, 9);
+scene.add(camera);
 
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0b0c10);
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0, 1.2, 0);
 
-  const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 200);
-  camera.position.set(0, 7, 16);
+// Lights — brighter, soft ambient + directional + rim
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const hemi = new THREE.HemisphereLight(0xddeeff, 0x080820, 0.75);
+hemi.position.set(0, 4, 0);
+scene.add(hemi);
 
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.maxPolarAngle = Math.PI * 0.52;
-  controls.minDistance = 6; controls.maxDistance = 28;
+const dir = new THREE.DirectionalLight(0xffffff, 1.35);
+dir.position.set(4, 6, 4);
+dir.castShadow = true;
+scene.add(dir);
 
-  // Lights
-  const hemi = new THREE.HemisphereLight(0xeaf2ff, 0x1a1a22, 0.95);
-  scene.add(hemi);
-  const dir = new THREE.DirectionalLight(0xffffff, 1.25);
-  dir.position.set(7, 12, 6);
-  dir.castShadow = true; dir.shadow.mapSize.set(2048,2048);
-  scene.add(dir);
-  const fill = new THREE.DirectionalLight(0x99bbff, 0.45);
-  fill.position.set(-8, 7, -6);
-  scene.add(fill);
+const rim1 = new THREE.SpotLight(0x6aa0ff, .8, 0, Math.PI/7, .25, 1.2);
+rim1.position.set(-6, 3, 2);
+scene.add(rim1);
 
-  // Ground
-  const ground = new THREE.Mesh(
-    new THREE.CylinderGeometry(36,36,0.25,64,1,false),
-    new THREE.MeshStandardMaterial({color:0x14161a, roughness:0.9, metalness:0.1})
-  );
-  ground.receiveShadow = true; ground.position.y = -0.15;
-  scene.add(ground);
+const rim2 = new THREE.SpotLight(0xffb86b, .7, 0, Math.PI/7, .25, 1.2);
+rim2.position.set(6, 3, -2);
+scene.add(rim2);
 
-  // Portal arch (simple)
-  const arch = new THREE.Group();
-  const m = new THREE.MeshStandardMaterial({ color: 0x3d4250, metalness: 0.2, roughness: 0.6 });
-  const left  = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 0.35), m);
-  const right = new THREE.Mesh(new THREE.BoxGeometry(0.35, 3.2, 0.35), m);
-  const top   = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.35, 0.35), m);
-  left.castShadow = right.castShadow = top.castShadow = true;
-  left.position.set(-1.2, 1.6, 0); right.position.set(1.2, 1.6, 0); top.position.set(0, 3.1, 0);
-  arch.add(left,right,top); arch.position.set(0,0,0);
-  scene.add(arch);
+// Ground (subtle arc + soft gradient)
+const g = new THREE.CircleGeometry(30, 64);
+const m = new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.95, metalness: 0.05 });
+const ground = new THREE.Mesh(g, m);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
 
-  // Brand boards around a ring
-  const loaderTex = new THREE.TextureLoader();
-  const ringR = 10.5;
-  const boardW = 2.6, boardH = 3.2, boardDepth = 0.2;
+// ---- Sign factory ----
+const textureLoader = new THREE.TextureLoader();
 
+function makeSign(store, index, total){
   const group = new THREE.Group();
-  scene.add(group);
+  const radius = 7;
+  const angle = (index / total) * Math.PI * 2;
+  const x = Math.cos(angle) * radius;
+  const z = Math.sin(angle) * radius;
+  group.position.set(x, 0, z);
+  group.lookAt(0, 1.2, 0);
 
-  function makeBoardTexture(s){
-    const imgUrl = s.logo;
-    return new Promise(resolve => {
-      loaderTex.load(imgUrl, tex => {
-        tex.colorSpace = THREE.SRGBColorSpace; resolve(tex);
-      }, undefined, _err => {
-        const c = makeTextCanvas(s.name, s.color||'#6aa0ff');
-        const tex = new THREE.CanvasTexture(c);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        resolve(tex);
-      });
-    });
-  }
+  // Pedestal
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,1.0,16), new THREE.MeshStandardMaterial({ color:0x2b2e36, roughness:.8 }));
+  pole.position.y = 0.5;
+  group.add(pole);
 
-  const boards = [];
-  for (let i=0;i<stores.length;i++){
-    const s = stores[i];
-    const angle = (i / stores.length) * Math.PI*2 + Math.PI*0.1;
-    const x = Math.cos(angle) * ringR;
-    const z = Math.sin(angle) * ringR;
+  // Frame
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.8,0.05), new THREE.MeshStandardMaterial({ color:0x000000 }));
+  frame.position.y = 1.3;
+  frame.castShadow = true;
+  group.add(frame);
 
-    const frame = new THREE.Mesh(
-      new THREE.BoxGeometry(boardW+0.2, boardH+0.2, boardDepth),
-      new THREE.MeshStandardMaterial({ color: 0x1b1f28, metalness: 0.3, roughness: 0.6 })
-    );
-    frame.castShadow = frame.receiveShadow = true;
-    frame.position.set(x, 1.8, z);
-    frame.lookAt(0, 1.5, 0);
-    group.add(frame);
+  // Board with logo as texture
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.7), new THREE.MeshBasicMaterial({ color:store.color }));
+  board.position.set(0, 1.3, 0.028);
+  const tex = textureLoader.load(store.logo);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.95,0.55), new THREE.MeshBasicMaterial({ map:tex, transparent:true }));
+  logo.position.set(0, 1.3, 0.031);
+  group.add(board, logo);
 
-    const tex = await makeBoardTexture(s);
-    const screen = new THREE.Mesh(
-      new THREE.PlaneGeometry(boardW, boardH),
-      new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })
-    );
-    screen.position.z = boardDepth*0.52;
-    frame.add(screen);
+  // Click to open link
+  logo.userData.link = store.link;
+  board.userData.link = store.link;
+  frame.userData.link = store.link;
+  group.userData.link = store.link;
 
-    boards.push({ mesh: frame, store: s });
-  }
-
-  // Interactivity
-  const raycaster = new THREE.Raycaster();
-  const v2 = new THREE.Vector2();
-  canvas.addEventListener('pointerdown', (ev)=>{
-    v2.x =  (ev.clientX / renderer.domElement.clientWidth) * 2 - 1;
-    v2.y = -(ev.clientY / renderer.domElement.clientHeight) * 2 + 1;
-    raycaster.setFromCamera(v2, camera);
-    const intersects = raycaster.intersectObjects(group.children, true);
-    if (intersects.length){
-      const obj = intersects[0].object;
-      const node = obj.parent; // frame
-      const hit = boards.find(b => b.mesh === node || b.mesh === obj);
-      if (hit) window.open(hit.store.link, '_blank', 'noopener');
-    }
-  });
-
-  // Animate
-  function onResize(){
-    const w = window.innerWidth, h = window.innerHeight;
-    renderer.setSize(w, h, false);
-    camera.aspect = w/h; camera.updateProjectionMatrix();
-  }
-  window.addEventListener('resize', onResize);
-  onResize();
-
-  hideLoader();
-  (function animate(){
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  })();
+  return group;
 }
 
-main().catch(err => {
-  console.error(err);
-  showErr('Error starting app (see console)');
-});
+// Raycaster for clicks
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+function onClick(e){
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(scene.children, true);
+  const hit = hits.find(h => h.object.userData && h.object.userData.link);
+  if (hit) openLink(hit.object.userData.link);
+}
+renderer.domElement.addEventListener('click', onClick);
+
+// Build from stores
+let signs = [];
+async function init(){
+  try{
+    loaderMsg.textContent = 'Loading brands…';
+    const stores = await loadStores();
+    buildChips(stores);
+    stores.forEach((s,i)=>{
+      const sign = makeSign(s, i, stores.length);
+      signs.push(sign);
+      scene.add(sign);
+    });
+    loaderEl.classList.add('hide');
+    animate();
+  }catch(err){
+    console.error(err);
+    loaderMsg.textContent = 'Error starting app (check console)';
+  }
+}
+
+function onResize(){
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+window.addEventListener('resize', onResize);
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+init();

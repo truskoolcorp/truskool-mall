@@ -1,15 +1,23 @@
-# Virtual Tru Skool Mall (Turnkey)
+# Virtual Tru Skool Mall (Turnkey, local vendor imports)
 
-Static three.js showroom – no build step. Drag/drop to Netlify/GitHub.
+This package loads Three.js from **local vendor files** (no CDN) to avoid ad/script blockers and duplicate module issues.
 
-## Structure
-- `index.html` – shell + loader + chips
-- `src/main.js` – all app code
-- `src/stores.json` – brands
-- `assets/images/*` – logo placeholders (replace with real)
-- `netlify.toml` – permissive CSP for jsdelivr/unpkg CDN
+## IMPORTANT
+Make sure your repository has **these files** under `vendor/three/` (real files, not just the README):
+- `three.module.js`
+- `OrbitControls.js`
+- `GLTFLoader.js`  (not required if you don’t load GLBs; safe to keep)
 
-## Notes
-- We load three.js from CDN (jsDelivr → unpkg). If both are blocked, the page will show a loader error.
-- Replace logo PNGs with your own (keep same filenames or update `stores.json`).
+If you used the previous setup, you already uploaded them. If not, download the matching versions from `three` and put them in `vendor/three/`.
+
+## Run locally
+Use a static server (modules won’t run from `file://`):
+```bash
+cd <this-folder>
+python -m http.server 5173
+# open http://localhost:5173
+```
+
+## Deploy
+Drop these files into your repo root and deploy with Netlify (no build step).
 
