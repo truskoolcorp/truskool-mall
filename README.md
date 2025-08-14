@@ -1,15 +1,18 @@
-# Virtual Tru Skool Mall (static three.js)
+# Virtual Tru Skool Mall (Static)
 
-No build step. Deploy the repo root to Netlify (or any static host).
+No build step. Pure static `index.html` + `src/main.js` using Three.js via CDN import map.
 
-- `index.html` provides the UI and an import-map pinning **three@0.159.0** from jsDelivr.
-- `src/main.js` imports `three` (via import map) and `OrbitControls`/`GLTFLoader` from the same version on jsDelivr.
-- `src/stores.json` lists your brands (edit colors/links/logos).
-- `assets/images/` holds placeholder logos (replace at will).
-- No duplicate Three.js instances, no bundler required.
+## Deploy
+- Upload everything to your static host (Netlify, etc.).
+- Ensure CSP allows `https://cdn.jsdelivr.net` (already set in `netlify.toml`).
 
-If you prefer to run **offline/no CDN**, download these files and place them under `vendor/three/` then change the import-map in `index.html` to point at `"/vendor/three/build/three.module.js"`:
+## Edit brands
+- `src/stores.json` controls names, colors, links, and logo file paths.
+- Drop your real logos in `assets/images/` and keep the paths in `stores.json`.
 
-- `build/three.module.js`
-- `examples/jsm/controls/OrbitControls.js`
-- `examples/jsm/loaders/GLTFLoader.js`
+## Local dev
+Just open `index.html` with a static server (CORS safe), e.g.
+```bash
+python -m http.server 5173
+# then open http://localhost:5173
+```
