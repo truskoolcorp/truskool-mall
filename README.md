@@ -1,25 +1,23 @@
-# Virtual Tru Skool Mall (Investor Demo)
+# Virtual Tru Skool Mall (Three.js Starter)
 
-A polished, static three.js scene you can deploy as-is to Netlify/Vercel/GitHub Pages.
-- CDN-loaded Three.js (no build step)
-- Clickable brand chips + 3D signs
-- Optional central portal: place your `assets/models/portal.glb` and it will appear
-- Soft lights, shadows, mobile-friendly orbit controls
+A minimal, static Three.js starter you can deploy to Vercel/Netlify or any static host.
+- Click brand tiles (UI) or 3D portals to open links
+- Add your own logos in `public/assets/images/`
+- Edit mall entries in `src/stores.json`
 
-## Run locally (any static server)
+## Run locally (no build step required)
+Just open `index.html` with a static server (CORS-safe), e.g.
 ```bash
 python -m http.server 5173
 # then open http://localhost:5173
 ```
 
-## Edit brands
-Update `/src/stores.json`:
-```json
-[
-  { "id":"faithfully-faded", "name":"Faithfully Faded", "logo":"/assets/images/faithfully-faded.png", "link":"https://www.faithfully-faded.com", "color":"#213a8f" }
-]
-```
-
 ## Deploy
-- Netlify: point **publish directory** to project root (`/`). No build command required.
-- Vercel: framework = **Other**, output = `/`.
+- **Netlify**: connect repo → set Site build to "manual" (no build) → publish directory: "."
+- **Vercel**: import repo → Framework: "Other" → Output: "."
+
+## Customize
+- Replace placeholder logos with real brand marks.
+- Swap portals for GLTF models and load with `GLTFLoader`.
+- Add realistic characters later (Ready Player Me / custom GLTF).
+
