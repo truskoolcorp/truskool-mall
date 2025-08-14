@@ -1,1 +1,0 @@
-export function openLink(url){ try{ window.open(url, "_blank", "noopener,noreferrer"); }catch(e){} }
