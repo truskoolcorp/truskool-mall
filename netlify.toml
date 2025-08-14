@@ -1,13 +1,12 @@
-# Netlify config for a static site (no build step)
+# Static site — publish directory is project root
 [build]
   publish = "."
 
-# Light CSP that allows our two CDNs for ESM modules
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; worker-src 'self' blob:"
-    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Allow ESM from self + CDNs, images & blobs, and inline styles for our simple UI
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
     X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
     X-Frame-Options = "SAMEORIGIN"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
