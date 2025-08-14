@@ -2,318 +2,187 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Virtual Tru Skool Mall</title>
-  <meta name="description" content="Virtual Tru Skool Mall — Three.js starter" />
+  <meta name="description" content="Virtual Tru Skool Mall – three.js starter" />
+
+  <!-- Import map: lets vendor loaders that say `from "three"` work in browser -->
+  <script type="importmap">
+  { "imports": { "three": "/vendor/three/three.module.js" } }
+  </script>
+
   <style>
-    :root { --bg:#0a0a0a; --panel:#0f0f0f; --border:#2a2a2a; --text:#eaeaea; --dim:#bdbdbd; --chip:#0f0f12; }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;overflow:hidden}
-    #three{position:fixed;inset:0;width:100vw;height:100vh;display:block}
-
-    .topbar{position:fixed;left:10px;right:10px;top:10px;z-index:30;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-      background:rgba(15,15,15,.9);border:1px solid var(--border);border-radius:12px;padding:8px 10px;box-shadow:0 8px 28px rgba(0,0,0,.45)}
-    .brand{font-weight:800;padding:6px 10px;background:#0d0d0d;border:1px solid var(--border);border-radius:10px;white-space:nowrap}
-    #mallGrid{display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:thin;padding:2px 0;flex:1 1 auto}
-    .tile{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;background:var(--chip);border:1px solid var(--border);
-      border-radius:10px;cursor:pointer;user-select:none;white-space:nowrap;transition:transform .12s,border-color .12s,background .12s}
-    .tile:hover{transform:translateY(-1px);border-color:#3b3b3b;background:#121217}
-    .tile img{width:16px;height:16px;object-fit:contain;border-radius:3px}
-
-    .tip{position:fixed;right:16px;top:56px;z-index:20;background:rgba(15,15,15,.85);border:1px solid var(--border);
-      border-radius:10px;padding:5px 10px;color:var(--dim);font-size:12px}
-
-    .foot{position:fixed;left:0;right:0;bottom:6px;text-align:center;z-index:5;color:#8a8a8a;font-size:11px;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none}
-
-    #loader{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);z-index:50;transition:opacity .3s}
-    #loader .box{display:grid;gap:12px;place-items:center}
-    #loader .spinner{width:48px;height:48px;border-radius:50%;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;animation:spin 1s linear infinite}
-    #loader .msg{color:#fff;font:600 14px/1.2 system-ui,sans-serif;opacity:.9}
+    :root{
+      --bg:#0b0c10; --panel:#13141a; --chip:#181a22; --chip-b:#2b2f3a;
+      --text:#e9ecf1; --muted:#9ca3af;
+      --brand1:#213a8f; --brand2:#bb3a45; --brand3:#56a06a;
+    }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;overflow:hidden}
+    .topbar{position:fixed;left:12px;right:12px;top:12px;z-index:20;display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(19,20,26,.55);border:1px solid var(--chip-b);border-radius:12px;backdrop-filter:blur(6px)}
+    .brand{font-weight:800;letter-spacing:.3px;margin-right:6px;opacity:.95}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--chip-b);cursor:pointer;user-select:none}
+    .dot{width:8px;height:8px;border-radius:50%}
+    .chip[data-id="faithfully-faded"] .dot{background:var(--brand1)}
+    .chip[data-id="concrete-rose"]   .dot{background:var(--brand2)}
+    .chip[data-id="cafe-sativa"]     .dot{background:var(--brand3)}
+    .tip{position:fixed;top:12px;right:12px;z-index:19;padding:6px 10px;font-size:12px;color:var(--muted);background:rgba(19,20,26,.55);border:1px solid var(--chip-b);border-radius:10px;backdrop-filter:blur(6px)}
+    canvas#three{position:fixed;inset:0;display:block;width:100%;height:100%}
+    .loader{position:fixed;inset:0;display:grid;place-items:center;z-index:30;background:radial-gradient(ellipse at center, rgba(0,0,0,.25), rgba(0,0,0,.85) 60%)}
+    .loader.hide{opacity:0;visibility:hidden;transition:opacity .25s ease .05s, visibility 0s linear .3s}
+    .spinner{width:50px;height:50px;border:3px solid rgba(255,255,255,.22);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin:8px auto}
+    .msg{color:#e9ecf1;font-weight:600;letter-spacing:.2px;text-align:center;white-space:pre-line}
     @keyframes spin{to{transform:rotate(360deg)}}
-
-    .help-btn{position:fixed;right:14px;top:14px;z-index:40;width:36px;height:36px;border-radius:10px;border:1px solid var(--border);
-      background:var(--panel);color:#fff;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.35)}
-    .help-panel{position:fixed;right:14px;top:58px;z-index:40;width:320px;max-width:calc(100% - 28px);background:rgba(15,15,15,.96);
-      color:#eee;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
-    .help-panel h3{margin:0 0 8px;font:700 16px system-ui,sans-serif}
-    .help-panel p,.help-panel li{font:400 13px/1.45 system-ui,sans-serif;color:#cfcfcf}
-    .help-panel .close{position:absolute;right:8px;top:6px;background:transparent;border:0;color:#aaa;font-size:20px;cursor:pointer}
+    .foot{position:fixed;left:0;right:0;bottom:8px;text-align:center;color:#818896;font-size:11px;opacity:.85}
     @media (max-width:640px){.brand{display:none}.tip{display:none}}
-
-    /* tiny in-page error banner */
-    #err{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(0,0,0,.85);
-      border:1px solid #f33;border-radius:10px;padding:12px 16px;color:#fff;font:13px/1.4 system-ui;display:none}
   </style>
 </head>
 <body>
-  <!-- Loader -->
-  <div id="loader" aria-live="polite">
-    <div class="box">
-      <div class="spinner" aria-hidden="true"></div>
-      <div class="msg">Loading…</div>
-    </div>
-  </div>
-  <div id="err"></div>
-
-  <!-- Help -->
-  <button id="helpBtn" class="help-btn" aria-label="Help">?</button>
-  <div id="helpPanel" class="help-panel" hidden>
-    <button id="helpClose" class="close" aria-label="Close">×</button>
-    <h3>Virtual Tru Skool Mall</h3>
-    <ul>
-      <li>Drag to look around; scroll or pinch to zoom.</li>
-      <li>Click a brand tile or glowing portal to open its link.</li>
-      <li>Press <b>H</b> or <b>?</b> to toggle this help.</li>
-    </ul>
-    <p>Manage brands in <code>src/stores.json</code> and logos in <code>assets/images/</code>.</p>
-  </div>
-
-  <!-- Top bar -->
-  <div class="topbar" role="navigation" aria-label="Brand shortcuts">
-    <div class="brand">Virtual Tru Skool Mall</div>
-    <div id="mallGrid" aria-label="Stores"></div>
-  </div>
-
-  <div class="tip">Tip: Click a brand tile or 3D portal to open its link.</div>
-
-  <!-- Canvas -->
+  <div class="topbar"><div class="brand">Virtual Tru Skool Mall</div><div id="chipRow" class="chips"></div></div>
+  <div class="tip">Tip: click a top chip or a 3D sign to open its link.</div>
   <canvas id="three"></canvas>
 
-  <div class="foot">Starter template • three.js • Ready for Vercel/Netlify • Enhance with 3D avatars later</div>
+  <div id="loader" class="loader" aria-live="polite">
+    <div>
+      <div class="spinner"></div>
+      <div id="loadMsg" class="msg">Loading…</div>
+    </div>
+  </div>
 
-  <noscript style="position:fixed;inset:0;display:grid;place-items:center;background:#000;color:#fff;z-index:100;">
-    This site needs JavaScript enabled.
-  </noscript>
+  <div class="foot">Starter • three.js • Netlify-ready • Add avatars later</div>
 
-  <!-- All app code inlined -->
   <script type="module">
-    // ---------- UI + safety ----------
-    const $ = sel => document.querySelector(sel);
-    const loader = $('#loader'), loaderMsg = loader?.querySelector('.msg');
-    const errBox = $('#err');
-    const showErr = (t) => { if(!errBox) return; errBox.textContent = t; errBox.style.display = 'block'; };
+    const $ = s => document.querySelector(s);
+    const loadMsg = $('#loadMsg'); const loader = $('#loader');
 
-    // Never leave the user stuck
-    setTimeout(() => { if (loader) { loader.style.opacity='0'; setTimeout(()=>loader.style.display='none',300); } }, 10000);
+    // 1) Preflight: verify the three files exist before importing
+    async function preflight() {
+      const files = [
+        '/vendor/three/three.module.js',
+        '/vendor/three/OrbitControls.js',
+        '/vendor/three/GLTFLoader.js'
+      ];
+      for (const f of files) {
+        const r = await fetch(f, { cache: 'no-cache' });
+        if (!r.ok) throw new Error(`Missing file: ${f} (${r.status})`);
+      }
+    }
 
-    // Help
-    const helpBtn = $('#helpBtn'), helpPanel = $('#helpPanel'), helpClose = $('#helpClose');
-    const toggleHelp = (force) => { if (!helpPanel) return; helpPanel.hidden = (typeof force==='boolean') ? !force : !helpPanel.hidden; };
-    helpBtn?.addEventListener('click', () => toggleHelp());
-    helpClose?.addEventListener('click', () => toggleHelp(false));
-    addEventListener('keydown', e => { if (e.key==='h' || e.key==='?') toggleHelp(); });
-
-    // ---------- Data: stores with fallback ----------
-    const DEFAULT_STORES = [
-      { id:"faithfully-faded", name:"Faithfully Faded", logo:"./assets/images/faithfully-faded.png", link:"https://www.faithfully-faded.com" },
-      { id:"concrete-rose",   name:"Concrete Rose",   logo:"./assets/images/concrete-rose.png",   link:"https://concrete-rose.world" },
-      { id:"cafe-sativa",     name:"Café Sativa",     logo:"./assets/images/cafe-sativa.png",     link:"https://cafe-sativa-llc-uzn6.b12sites.com/" }
-    ];
-    async function loadStores() {
+    // 2) Tiny helper for store list
+    const colorFor = id => id==='faithfully-faded'?0x213a8f:id==='concrete-rose'?0xbb3a45:id==='cafe-sativa'?0x56a06a:0x3a3f4a;
+    async function loadStores(){
       try {
-        const r = await fetch('./src/stores.json', { cache:'no-store' });
-        if (r.ok) return await r.json();
-      } catch {}
-      return DEFAULT_STORES;
+        const r = await fetch('/src/stores.json', { cache: 'no-cache' });
+        if (!r.ok) throw 0;
+        return r.json();
+      } catch {
+        // Fallback defaults
+        return [
+          {"id":"faithfully-faded","name":"Faithfully Faded","logo":"/assets/images/faithfully-faded.png","link":"https://www.faithfully-faded.com"},
+          {"id":"concrete-rose","name":"Concrete Rose","logo":"/assets/images/concrete-rose.png","link":"https://concrete-rose.world"},
+          {"id":"cafe-sativa","name":"Café Sativa","logo":"/assets/images/cafe-sativa.png","link":"https://cafe-sativa-llc-uzn6.b12sites.com/"}
+        ];
+      }
     }
-    const STORES = await loadStores();
-
-    // Top chips
-    const grid = $('#mallGrid');
-    for (const s of STORES) {
-      const el = document.createElement('div');
-      el.className = 'tile';
-      el.innerHTML = `<img src="${s.logo}" alt="${s.name}" /><span>${s.name}</span>`;
-      el.onclick = () => window.open(s.link, '_blank');
-      grid.appendChild(el);
+    function buildChips(stores){
+      const row = $('#chipRow'); row.innerHTML='';
+      for (const s of stores) {
+        const chip = document.createElement('div');
+        chip.className = 'chip'; chip.dataset.id = s.id;
+        chip.innerHTML = `<span class="dot"></span>${s.name}`;
+        chip.onclick = () => window.open(s.link, '_blank');
+        row.appendChild(chip);
+      }
     }
 
-    // ---------- Load Three.js from 2 CDNs (fallback) ----------
-    async function loadThree() {
-      const bases = ['https://unpkg.com','https://cdn.jsdelivr.net/npm'];
-      let last;
-      for (const base of bases) {
+    // 3) Start
+    (async () => {
+      try {
+        loadMsg.textContent = 'Checking local 3D libraries…';
+        await preflight();
+
+        loadMsg.textContent = 'Starting 3D…';
+        // After preflight, we can import safely
+        const THREE = await import('three');
+        const { OrbitControls } = await import('/vendor/three/OrbitControls.js');
+        const { GLTFLoader }  = await import('/vendor/three/GLTFLoader.js');
+
+        // Basic renderer/scene (with a TEST CUBE so you see something immediately)
+        const canvas = document.getElementById('three');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.setClearColor(0x0b0c10, 1);
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x0b0c10, 12, 28);
+        const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 100);
+        camera.position.set(0, 1.7, 7);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.target.set(0,1.3,0);
+        controls.minDistance = 4; controls.maxDistance = 15;
+
+        scene.add(new THREE.HemisphereLight(0x93a4ff, 0x0b0c10, 0.6));
+        const dir = new THREE.DirectionalLight(0xffffff, 1.0); dir.position.set(3,5,2); scene.add(dir);
+
+        const ground = new THREE.Mesh(new THREE.CircleGeometry(20,64), new THREE.MeshStandardMaterial({color:0x0e1016, roughness:.95}));
+        ground.rotation.x = -Math.PI/2; scene.add(ground);
+
+        // TEST CUBE — if you see a spinning cube, 3D is alive
+        const testCube = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), new THREE.MeshStandardMaterial({ color: 0x6aa0ff, metalness:.2, roughness:.4 }));
+        testCube.position.set(0,1.4,0); scene.add(testCube);
+
+        // Signs
+        const clickable = [];
+        function makeLabelTexture(text, bg='#151a22'){
+          const c = document.createElement('canvas'); c.width=512; c.height=512;
+          const g = c.getContext('2d'); g.fillStyle=bg; g.fillRect(0,0,512,512);
+          g.fillStyle='#e9ecf1'; g.font='bold 64px system-ui,Segoe UI,Arial';
+          g.textAlign='center'; g.textBaseline='middle'; g.fillText(text,256,256);
+          const t = new THREE.CanvasTexture(c); t.anisotropy=8; t.encoding=THREE.sRGBEncoding; return t;
+        }
+        function addSign(store,i,n){
+          const board = new THREE.Mesh(new THREE.PlaneGeometry(1.1,1.4), new THREE.MeshStandardMaterial({ map: makeLabelTexture(store.name,'#151822'), color: colorFor(store.id) }));
+          board.userData.link = store.link;
+          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.9,12), new THREE.MeshStandardMaterial({ color:0x2f323b, roughness:.8 }));
+          post.position.y = -1.15;
+          const g = new THREE.Group(); g.add(board,post);
+          const r=5, a=(i-(n-1)/2)*(Math.PI/7); g.position.set(Math.sin(a)*r,1.3,Math.cos(a)*r); g.lookAt(0,1.3,0);
+          scene.add(g); clickable.push(board);
+        }
+
+        const stores = await loadStores(); buildChips(stores);
+        stores.forEach((s,i)=>addSign(s,i,stores.length));
+
+        // Optional portal
         try {
-          const THREE = await import(`${base}/three@0.159.0/build/three.module.js`);
-          const { OrbitControls } = await import(`${base}/three@0.159.0/examples/jsm/controls/OrbitControls.js`);
-          const { GLTFLoader }   = await import(`${base}/three@0.159.0/examples/jsm/loaders/GLTFLoader.js`);
-          return { THREE, OrbitControls, GLTFLoader };
-        } catch (e) { last = e; }
+          const { scene: portal } = await new Promise((res,rej)=> new GLTFLoader().load('/assets/models/portal.glb', g=>res(g), undefined, rej));
+          portal.position.set(-2.3,0,1.4); portal.rotation.y=Math.PI*0.25; scene.add(portal);
+        } catch(e) { /* ok for now */ }
+
+        // Picking
+        const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+        renderer.domElement.addEventListener('click', (e)=>{
+          const r = renderer.domElement.getBoundingClientRect();
+          mouse.x=((e.clientX-r.left)/r.width)*2-1; mouse.y=-((e.clientY-r.top)/r.height)*2+1;
+          ray.setFromCamera(mouse,camera);
+          const hits = ray.intersectObjects(clickable,true);
+          if (hits.length) { const u = hits[0].object.userData.link; if (u) window.open(u,'_blank'); }
+        });
+
+        // Animate
+        loader.classList.add('hide');
+        function loop(){ testCube.rotation.y += 0.01; controls.update(); renderer.render(scene,camera); requestAnimationFrame(loop) }
+        loop();
+
+        addEventListener('resize', ()=>{ camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+      } catch (err) {
+        console.error(err);
+        loadMsg.textContent = (err && err.message) ? String(err.message) : 'Error starting app (see console)';
       }
-      throw last ?? new Error('CDN blocked');
-    }
-
-    let THREE, OrbitControls, GLTFLoader;
-    try {
-      ({ THREE, OrbitControls, GLTFLoader } = await loadThree());
-    } catch (e) {
-      console.error(e);
-      showErr('Error loading 3D libraries. Try disabling ad/script blockers or refreshing.');
-      if (loaderMsg) loaderMsg.textContent = 'Error loading 3D libs';
-      throw e;
-    }
-
-    // WebGL support
-    const canvas = $('#three');
-    const tmp = document.createElement('canvas');
-    const ok = !!(tmp.getContext && (tmp.getContext('webgl') || tmp.getContext('webgl2')));
-    if (!ok) { showErr('WebGL is not available in this browser/device.'); throw new Error('No WebGL'); }
-
-    // ---------- THREE setup ----------
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
-    renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
-    renderer.setSize(innerWidth, innerHeight);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
-    camera.position.set(0, 2.25, 6.2);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; controls.dampingFactor = 0.06;
-    controls.enablePan = false;
-    controls.minDistance = 3.4; controls.maxDistance = 7.6;
-    controls.minPolarAngle = Math.PI * 0.18; controls.maxPolarAngle = Math.PI * 0.48;
-
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x222244, 1.0));
-    const dir = new THREE.DirectionalLight(0xffffff, 1.0); dir.position.set(2,5,3); scene.add(dir);
-
-    const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(6.2, 64),
-      new THREE.MeshStandardMaterial({ color:0x111111, metalness:0.2, roughness:0.9 })
-    );
-    floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
-
-    // Diagnostics: ?diag=1 draws a simple torus so you always see something working
-    const DIAG = new URL(location.href).searchParams.get('diag') === '1';
-    if (DIAG) {
-      const diag = new THREE.Mesh(
-        new THREE.TorusKnotGeometry(0.8, 0.25, 160, 24),
-        new THREE.MeshStandardMaterial({ color:0x5a6bff, metalness:0.3, roughness:0.4, emissive:0x111133 })
-      );
-      diag.position.set(0,1.5,0);
-      scene.add(diag);
-      (function loop(){ diag.rotation.x += 0.01; diag.rotation.y += 0.013; controls.update(); renderer.render(scene,camera); requestAnimationFrame(loop); })();
-      // hide loader now
-      if (loader) { loader.style.opacity='0'; setTimeout(()=>loader.style.display='none',300); }
-      // Skip portals in diag mode
-      window.addEventListener('resize', ()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
-      return;
-    }
-
-    // ---------- Optionally load arch model ----------
-    const manager = new THREE.LoadingManager(
-      ()=>{ if (loader){ loader.style.opacity='0'; setTimeout(()=>loader.style.display='none',300);} },
-      (_,loaded,total)=>{ if (loaderMsg) loaderMsg.textContent = `Loading ${loaded}/${total}…`; }
-    );
-    let archTemplate = null;
-    try {
-      const glb = await new (GLTFLoader)(manager).loadAsync('./assets/models/portal.glb');
-      archTemplate = glb.scene || glb.scenes?.[0] || null;
-      if (archTemplate) {
-        const box = new THREE.Box3().setFromObject(archTemplate);
-        const size = box.getSize(new THREE.Vector3()).length() || 1;
-        archTemplate.scale.setScalar(2.2 / size);
-      }
-    } catch { console.warn('portal.glb missing — using procedural arch'); }
-
-    function makeProceduralArch(){
-      const g = new THREE.Group();
-      const mat = new THREE.MeshStandardMaterial({ color:0x2b2b2b, metalness:0.2, roughness:0.6 });
-      const leg = new THREE.CylinderGeometry(0.08,0.08,2.0,20);
-      const left  = new THREE.Mesh(leg, mat); left.position.set(-0.9,1.0,0); g.add(left);
-      const right = new THREE.Mesh(leg, mat); right.position.set( 0.9,1.0,0); g.add(right);
-      const top   = new THREE.Mesh(new THREE.BoxGeometry(2.0,0.16,0.2), mat); top.position.set(0,2.08,0); g.add(top);
-      return g;
-    }
-    function makeGlow(){
-      const size=512, c=document.createElement('canvas'); c.width=c.height=size;
-      const ctx=c.getContext('2d');
-      const grad=ctx.createRadialGradient(size/2,size/2,size*0.05,size/2,size/2,size*0.45);
-      grad.addColorStop(0,'rgba(90,107,255,.35)'); grad.addColorStop(.5,'rgba(90,107,255,.18)'); grad.addColorStop(1,'rgba(90,107,255,0)');
-      ctx.fillStyle=grad; ctx.fillRect(0,0,size,size);
-      const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
-      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.85}));
-      sp.scale.set(2.6,2.6,1); sp.userData.baseScale=2.6; return sp;
-    }
-    function makeLabel(text){
-      const c=document.createElement('canvas'); c.width=512; c.height=128;
-      const ctx=c.getContext('2d'); ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(0,0,c.width,c.height);
-      ctx.fillStyle='#fff'; ctx.font='bold 48px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial';
-      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text,c.width/2,c.height/2);
-      const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
-      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,depthWrite:false,transparent:true,opacity:.95}));
-      sp.scale.set(1.7,0.42,1); return sp;
-    }
-
-    const group = new THREE.Group(); scene.add(group);
-    const texLoader = new THREE.TextureLoader(manager);
-    const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
-    let clickable=[]; const glows=[];
-    const hoverMat = new THREE.MeshStandardMaterial({ emissive:0x5a6bff, emissiveIntensity:0.35, metalness:0.1, roughness:0.6 });
-
-    function flatCard(store, pos, lookAt){
-      const tex = texLoader.load(store.logo, undefined, undefined, ()=>console.warn('Logo not found:', store.logo));
-      tex.colorSpace = THREE.SRGBColorSpace;
-      const baseMat = new THREE.MeshStandardMaterial({ map:tex, metalness:0.1, roughness:0.6 });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6), baseMat);
-      mesh.position.copy(pos); mesh.lookAt(lookAt);
-      mesh.userData = { link:store.link, name:store.name, baseMat };
-      group.add(mesh); clickable.push(mesh);
-
-      const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.08,1.0,14),
-        new THREE.MeshStandardMaterial({ color:0x2a2a2a }));
-      stand.position.set(pos.x,0.5,pos.z); scene.add(stand);
-
-      const label = makeLabel(store.name); label.position.copy(pos).add(new THREE.Vector3(0,0.95,0)); scene.add(label);
-      mesh.userData.label = label;
-      mesh.onBeforeRender = ()=>{ mesh.position.y=1.45 + Math.sin(performance.now()/700 + pos.x + pos.z)*0.05;
-                                  label.position.y=mesh.position.y + 0.95; };
-      return mesh;
-    }
-
-    function addPortal(store, i, total){
-      const a = (i/total)*Math.PI*2, r = 3.9;
-      const pos = new THREE.Vector3(Math.cos(a)*r,1.45,Math.sin(a)*r);
-      const center = new THREE.Vector3(0,1.25,0);
-
-      flatCard(store, pos, center);
-
-      const arch = archTemplate ? archTemplate.clone(true) : makeProceduralArch();
-      arch.traverse(n=>{ if(n.isMesh){ n.castShadow=n.receiveShadow=true; } });
-      arch.position.set(pos.x,0,pos.z); arch.lookAt(0,1.2,0);
-      arch.position.add(new THREE.Vector3().subVectors(arch.position, center).setLength(0.25));
-      scene.add(arch);
-
-      const glow = makeGlow();
-      glow.position.set(pos.x,1.35,pos.z);
-      glow.position.add(new THREE.Vector3().subVectors(glow.position, center).setLength(0.02));
-      scene.add(glow); glows.push(glow);
-    }
-
-    STORES.forEach((s,i)=>addPortal(s,i,STORES.length));
-
-    // Interaction
-    let hovered=null;
-    function pick(x,y){ mouse.x=(x/innerWidth)*2-1; mouse.y=-(y/innerHeight)*2+1; raycaster.setFromCamera(mouse,camera);
-      const h=raycaster.intersectObjects(clickable,false)[0]; return h?h.object:null; }
-    addEventListener('pointermove', e=>{
-      const t=pick(e.clientX,e.clientY);
-      if(hovered && hovered!==t){ hovered.material=hovered.userData.baseMat; hovered=null; }
-      if(t && hovered!==t){ hovered=t; hovered.material=hoverMat; }
-    });
-    addEventListener('pointerdown', e=>{
-      const t=pick(e.clientX,e.clientY); if(t?.userData?.link) window.open(t.userData.link,'_blank');
-    });
-
-    // Resize & loop
-    addEventListener('resize', ()=>{
-      camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth,innerHeight);
-    });
-    (function loop(){
-      const t=performance.now()*0.0015;
-      for(const g of glows){ const s=g.userData.baseScale*(1.0+Math.sin(t)*0.05); g.scale.set(s,s,1); }
-      controls.update(); renderer.render(scene,camera); requestAnimationFrame(loop);
     })();
   </script>
 </body>
