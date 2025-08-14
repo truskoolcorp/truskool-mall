@@ -1,19 +1,15 @@
 # Virtual Tru Skool Mall (Turnkey)
 
-Static three.js showroom (no build step).
+Static three.js showroom – no build step. Drag/drop to Netlify/GitHub.
 
-## Run locally
-```bash
-python -m http.server 5173
-# then open http://localhost:5173
-```
+## Structure
+- `index.html` – shell + loader + chips
+- `src/main.js` – all app code
+- `src/stores.json` – brands
+- `assets/images/*` – logo placeholders (replace with real)
+- `netlify.toml` – permissive CSP for jsdelivr/unpkg CDN
 
-## Deploy to Netlify
-- Build command: (leave blank)
-- Publish directory: `.`
+## Notes
+- We load three.js from CDN (jsDelivr → unpkg). If both are blocked, the page will show a loader error.
+- Replace logo PNGs with your own (keep same filenames or update `stores.json`).
 
-## Add a portal model (optional)
-Place `assets/models/portal.glb` (if present the code would load it; otherwise a simple frame is shown).
-
-## Brands
-Edit `src/stores.json`. Logos live in `assets/images/*.png`.
