@@ -1,8 +1,8 @@
-# Netlify headers (strict CSP but allow jsDelivr for Three.js import map)
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    X-Content-Type-Options = "nosniff"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+[build]
+  publish = "."
+
+# Optional: single-page style fallback (keeps it simple)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
