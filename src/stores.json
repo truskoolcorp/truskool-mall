@@ -1,0 +1,20 @@
+[
+  {
+    "id": "faithfully-faded",
+    "name": "Faithfully Faded",
+    "logo": "/assets/images/faithfully-faded.png",
+    "link": "https://www.faithfully-faded.com"
+  },
+  {
+    "id": "concrete-rose",
+    "name": "Concrete Rose",
+    "logo": "/assets/images/concrete-rose.png",
+    "link": "https://concrete-rose.world"
+  },
+  {
+    "id": "cafe-sativa",
+    "name": "Caf\u00e9 Sativa",
+    "logo": "/assets/images/cafe-sativa.png",
+    "link": "https://cafe-sativa-llc-uzn6.b12sites.com/"
+  }
+]
