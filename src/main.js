@@ -1,4 +1,4 @@
-<script type="module">
+<script type="module" src="/src/main.js?v=2"></script>
 // STATIC ESM imports (one copy of Three, no CDN, no eval)
 import * as THREE from '/vendor/three/three.module.js';
 import { OrbitControls } from '/vendor/three/OrbitControls.js';
