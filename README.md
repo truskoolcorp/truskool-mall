@@ -1,31 +1,15 @@
-# Virtual Tru Skool Mall (Turnkey)
+# Virtual Tru Skool Mall (static three.js)
 
-Static, no-build Three.js showroom. Drag-drop into a repo and deploy to Netlify (or any static host).
+No build step. Deploy the repo root to Netlify (or any static host).
 
-## Structure
+- `index.html` provides the UI and an import-map pinning **three@0.159.0** from jsDelivr.
+- `src/main.js` imports `three` (via import map) and `OrbitControls`/`GLTFLoader` from the same version on jsDelivr.
+- `src/stores.json` lists your brands (edit colors/links/logos).
+- `assets/images/` holds placeholder logos (replace at will).
+- No duplicate Three.js instances, no bundler required.
 
-```
-index.html
-src/
-  main.js
-  stores.json
-assets/
-  images/*.png
-vendor/
-  three/            (optional: add three.module.js & OrbitControls.js here to avoid CDNs)
-netlify.toml
-```
+If you prefer to run **offline/no CDN**, download these files and place them under `vendor/three/` then change the import-map in `index.html` to point at `"/vendor/three/build/three.module.js"`:
 
-## Running locally
-
-```
-# Python 3
-python -m http.server 5173
-# Open http://localhost:5173
-```
-
-## Notes
-
-- The app loads Three.js from `/vendor/three` if present, otherwise falls back to unpkg/jsDelivr.
-- Update `src/stores.json` and replace the PNGs in `assets/images/` with real brand logos.
-- Tweak lights in `src/main.js` to taste.
+- `build/three.module.js`
+- `examples/jsm/controls/OrbitControls.js`
+- `examples/jsm/loaders/GLTFLoader.js`
