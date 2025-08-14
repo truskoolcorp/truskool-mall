@@ -1,1 +1,1 @@
-Put portal.glb here if you have one. The app will auto-load it if present.
+Drop your portal.glb model here to enable the 3D arch at the center of the mall.
