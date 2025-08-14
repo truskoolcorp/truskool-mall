@@ -1,6 +1,10 @@
 [build]
   publish = "."
-  command = "bash ./scripts/fetch-vendor.sh"
 
-[build.environment]
-  NODE_VERSION = "18"
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # allow cross-origin modules from CDNs
+    Access-Control-Allow-Origin = "*"
