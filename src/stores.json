@@ -4,7 +4,7 @@
     "name": "Faithfully Faded",
     "logo": "/assets/images/faithfully-faded.png",
     "color": "#213a8f",
-    "link": "https://faithfully-faded.b12sites.com"
+    "link": "https://www.faithfully-faded.com"
   },
   {
     "id": "concrete-rose",
@@ -25,27 +25,27 @@
     "name": "Wanderlust",
     "logo": "/assets/images/wanderlust.png",
     "color": "#d6a65f",
-    "link": "https://truskoolcorp.wixsite.com/wanderlust"
+    "link": "https://example.com/wanderlust"
   },
   {
     "id": "hoe",
     "name": "H.O.E.",
     "logo": "/assets/images/hoe.png",
     "color": "#b256b2",
-    "link": "https://truskoolcorp.wixstudio.com/h-o-e"
+    "link": "https://example.com/hoe"
   },
   {
     "id": "tru-skool-records",
     "name": "Tru Skool Records",
     "logo": "/assets/images/tru-skool-records.png",
     "color": "#6aa0ff",
-    "link": "https://flow.page/truskool"
+    "link": "https://example.com/records"
   },
   {
     "id": "glyph",
     "name": "Glyph",
     "logo": "/assets/images/glyph.png",
     "color": "#f77e3e",
-    "link": "https://truskoolcorp.wixstudio.com/glyph"
+    "link": "https://example.com/glyph"
   }
 ]
