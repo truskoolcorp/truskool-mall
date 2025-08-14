@@ -1,3 +1,12 @@
+// src/main.js (top of file)
+import * as THREE from '/vendor/three/three.module.js';
+import { OrbitControls } from '/vendor/three/OrbitControls.js';
+import { GLTFLoader } from '/vendor/three/GLTFLoader.js';
+
+// (the rest of your file stays the same)
+// Make sure somewhere after init you hide the loader:
+const hideLoader = () => document.getElementById('loader')?.classList.add('hide');
+
 // --- Minimal UI hooks (optional) ---
 const loaderEl = document.getElementById('loader');
 const loaderMsg = document.querySelector('.load-msg');
