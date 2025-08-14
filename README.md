@@ -1,28 +1,16 @@
-# Virtual Tru Skool Mall (CDN-only, static)
+# Virtual Tru Skool Mall (Turnkey)
 
-Three.js showroom you can deploy to **Netlify** (or any static host).  
-_No build step. No vendor folder. Libraries load from CDNs with fallback._
+Static three.js showroom — deploy to Netlify or any static host.
 
-## Run locally
-Use any static server (so ES modules work):
+## Edit brands
+- Open `src/stores.json` and edit `name`, `link`, `color`, `logo`.
+- Add brand logo images in `assets/images/`. Keep them ~512×512 PNGs.
 
+## GLB portal (optional)
+- Drop `assets/models/portal.glb`. If found, it loads; otherwise a simple frame shows.
+
+## Local preview
 ```bash
-# Python
 python -m http.server 5173
-# open http://localhost:5173
+# then open http://localhost:5173
 ```
-
-## Structure
-```
-assets/
-  images/            # put brand images here (optional)
-  models/            # put portal.glb here (optional)
-src/
-  main.js            # 3D scene + UI
-  stores.json        # edit brands, colors, links
-index.html
-netlify.toml
-```
-
-## Add your portal
-Drop a file at `assets/models/portal.glb`. The app will auto-load it if present.

@@ -2,43 +2,50 @@
   {
     "id": "faithfully-faded",
     "name": "Faithfully Faded",
-    "color": "#2c4eb2",
+    "logo": "/assets/images/faithfully-faded.png",
+    "color": "#213a8f",
     "link": "https://www.faithfully-faded.com"
   },
   {
     "id": "concrete-rose",
     "name": "Concrete Rose",
+    "logo": "/assets/images/concrete-rose.png",
     "color": "#bb3a45",
     "link": "https://concrete-rose.world"
   },
   {
     "id": "cafe-sativa",
     "name": "Café Sativa",
+    "logo": "/assets/images/cafe-sativa.png",
     "color": "#56a06a",
     "link": "https://cafe-sativa-llc-uzn6.b12sites.com/"
   },
   {
     "id": "wanderlust",
     "name": "Wanderlust",
-    "color": "#e8a33a",
+    "logo": "/assets/images/wanderlust.png",
+    "color": "#d6a65f",
     "link": "https://example.com/wanderlust"
   },
   {
     "id": "hoe",
     "name": "H.O.E.",
-    "color": "#7a58d6",
+    "logo": "/assets/images/hoe.png",
+    "color": "#b256b2",
     "link": "https://example.com/hoe"
   },
   {
-    "id": "ts-records",
+    "id": "tru-skool-records",
     "name": "Tru Skool Records",
-    "color": "#d44e82",
+    "logo": "/assets/images/tru-skool-records.png",
+    "color": "#6aa0ff",
     "link": "https://example.com/records"
   },
   {
     "id": "glyph",
     "name": "Glyph",
-    "color": "#0084d4",
+    "logo": "/assets/images/glyph.png",
+    "color": "#f77e3e",
     "link": "https://example.com/glyph"
   }
 ]
