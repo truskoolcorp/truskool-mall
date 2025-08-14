@@ -1,260 +1,268 @@
-// src/main.js
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/loaders/GLTFLoader.js';
-import { Sky } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/objects/Sky.js';
-import { RectAreaLightUniformsLib } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/lights/RectAreaLightUniformsLib.js';
+// Minimal, production-friendly Three.js scene for the Tru Skool mall.
+export default async function init() {
+  const sel = (q) => document.querySelector(q);
+  const loaderEl = sel('#loader');
+  const loaderMsg = sel('#loaderMsg');
+  const setMsg = (t) => loaderMsg.textContent = t;
 
-const sel = (q) => document.querySelector(q);
-const canvas = sel('#three');
-const chipRow = sel('#chipRow');
+  // Load brand data
+  let STORES = [];
+  try {
+    const res = await fetch('/src/stores.json', {cache:'no-store'});
+    STORES = await res.json();
+  } catch (e) {
+    console.error(e);
+    setMsg('Could not load store data'); return;
+  }
 
-async function getStores() {
-  const res = await fetch('/src/stores.json', { cache: 'no-store' });
-  if (!res.ok) throw new Error('stores.json not found');
-  return res.json();
-}
+  // Build UI chips
+  const chips = sel('#chips');
+  for (const s of STORES) {
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.dataset.id = s.id;
+    el.innerHTML = `<span class="dot" style="background:${s.color}"></span>${s.name}`;
+    el.onclick = () => focusStore(s.id);
+    chips.appendChild(el);
+  }
 
-// ---------- Renderer / Scene / Camera ----------
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
-renderer.physicallyCorrectLights = true;
+  // Load Three.js modules with CDN fallback
+  async function loadThree() {
+    const bases = ['https://unpkg.com','https://cdn.jsdelivr.net/npm'];
+    let last;
+    for (const base of bases) {
+      try {
+        const THREE = await import(`${base}/three@0.159.0/build/three.module.js`);
+        const { OrbitControls } = await import(`${base}/three@0.159.0/examples/jsm/controls/OrbitControls.js`);
+        const { GLTFLoader } = await import(`${base}/three@0.159.0/examples/jsm/loaders/GLTFLoader.js`);
+        const { RectAreaLightUniformsLib } = await import(`${base}/three@0.159.0/examples/jsm/lights/RectAreaLightUniformsLib.js`);
+        const { Sky } = await import(`${base}/three@0.159.0/examples/jsm/objects/Sky.js`);
+        return { THREE, OrbitControls, GLTFLoader, RectAreaLightUniformsLib, Sky };
+      } catch (e) { last = e; }
+    }
+    throw last ?? new Error('CDN blocked');
+  }
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0c10);
+  let THREE, OrbitControls, GLTFLoader, RectAreaLightUniformsLib, Sky;
+  try {
+    ({ THREE, OrbitControls, GLTFLoader, RectAreaLightUniformsLib, Sky } = await loadThree());
+  } catch (e) {
+    console.error(e);
+    setMsg('Error loading 3D libs. Check ad/script blockers or refresh.');
+    return;
+  }
 
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 200);
-camera.position.set(0, 2.3, 7.2);
-scene.add(camera);
+  // Setup renderer/canvas
+  const canvas = sel('#three');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.target.set(0, 1.3, 0);
-controls.minDistance = 3.5;
-controls.maxDistance = 18;
-controls.minPolarAngle = THREE.MathUtils.degToRad(15);
-controls.maxPolarAngle = THREE.MathUtils.degToRad(75);
+  // Scene & fog
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0b0c10, 0.035);
 
-// ---------- Environment (physically-based sky to PMREM) ----------
-const sky = new Sky();
-sky.scale.setScalar(800);
-scene.add(sky);
+  // Camera & controls
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 3.4, 10);
 
-const pmrem = new THREE.PMREMGenerator(renderer);
-const sun = new THREE.Vector3();
-function updateSky() {
-  // Good indoor-balanced light with subtle sun
-  const phi = THREE.MathUtils.degToRad(80);   // elevation
-  const theta = THREE.MathUtils.degToRad(25); // azimuth
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.target.set(0, 1.2, 0);
+
+  // Environment sky + soft ambient
+  const hemi = new THREE.HemisphereLight(0xaaccee, 0x202028, 0.35);
+  scene.add(hemi);
+
+  const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+  dir.position.set(-4, 6, 3);
+  dir.castShadow = true;
+  dir.shadow.mapSize.set(1024,1024);
+  scene.add(dir);
+
+  // Rect area light support
+  RectAreaLightUniformsLib.init();
+
+  // Sky (physically-based) for gentle environment
+  const sky = new Sky();
+  sky.scale.setScalar(450000);
+  scene.add(sky);
+  const sun = new THREE.Vector3();
+  const phi = THREE.MathUtils.degToRad(85);
+  const theta = THREE.MathUtils.degToRad(180);
   sun.setFromSphericalCoords(1, phi, theta);
-  sky.material.uniforms['turbidity'].value = 2.1;
-  sky.material.uniforms['rayleigh'].value = 1.2;
-  sky.material.uniforms['mieCoefficient'].value = 0.0045;
-  sky.material.uniforms['mieDirectionalG'].value = 0.9;
   sky.material.uniforms['sunPosition'].value.copy(sun);
 
-  const envRT = pmrem.fromScene(sky, 0.05);
-  scene.environment = envRT.texture;
-}
-updateSky();
+  // Ground (smooth dark)
+  const groundGeo = new THREE.CircleGeometry(30, 48);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x0f1117, roughness: 1, metalness: 0 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.receiveShadow = true;
+  scene.add(ground);
 
-// ---------- Ground ----------
-const groundGeo = new THREE.CircleGeometry(40, 128);
-const groundMat = new THREE.MeshStandardMaterial({
-  color: new THREE.Color(0x101115).convertSRGBToLinear().offsetHSL(0, 0, 0.02),
-  roughness: 0.9,
-  metalness: 0.0
-});
-const ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// Subtle ring pattern for depth (just a faint darker ring)
-const rings = new THREE.Group();
-for (let i = 1; i <= 6; i++) {
-  const r = 3.5 * i;
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(r - 0.06, r + 0.06, 256),
-    new THREE.MeshBasicMaterial({ color: 0x0a0b0e, transparent: true, opacity: 0.25 })
-  );
-  ring.rotation.x = -Math.PI / 2;
-  rings.add(ring);
-}
-scene.add(rings);
-
-// ---------- Lights ----------
-RectAreaLightUniformsLib.init(); // for area lights
-
-const hemi = new THREE.HemisphereLight(0x6b8cff, 0x1b1b21, 0.35);
-scene.add(hemi);
-
-const key = new THREE.DirectionalLight(0xffffff, 2.0);
-key.position.set(6, 8, 4);
-key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
-key.shadow.bias = -0.0006;
-key.shadow.camera.near = 1;
-key.shadow.camera.far = 30;
-scene.add(key);
-
-const rim = new THREE.DirectionalLight(0x9fbaff, 0.8);
-rim.position.set(-6, 4, -6);
-scene.add(rim);
-
-// ---------- Helpers ----------
-const loader = new THREE.TextureLoader();
-loader.colorSpace = THREE.SRGBColorSpace;
-
-function roundedRectShape(w, h, r) {
-  const s = new THREE.Shape();
-  const x = -w / 2, y = -h / 2;
-  s.moveTo(x + r, y);
-  s.lineTo(x + w - r, y);
-  s.quadraticCurveTo(x + w, y, x + w, y + r);
-  s.lineTo(x + w, y + h - r);
-  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  s.lineTo(x + r, y + h);
-  s.quadraticCurveTo(x, y + h, x, y + h - r);
-  s.lineTo(x, y + r);
-  s.quadraticCurveTo(x, y, x + r, y);
-  return s;
-}
-
-async function loadLogoTexture(url, fallbackText) {
-  return new Promise((resolve) => {
-    loader.load(
-      url,
-      (tex) => resolve(tex),
-      undefined,
-      () => {
-        // Fallback: draw brand name onto a canvas texture (crisp on any DPI)
-        const c = document.createElement('canvas');
-        c.width = 1024; c.height = 1024;
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = '#0f1116';
-        ctx.fillRect(0, 0, c.width, c.height);
-        ctx.fillStyle = '#eaeaf2';
-        ctx.font = 'bold 140px system-ui, Segoe UI, Roboto';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(fallbackText, c.width / 2, c.height / 2);
-        const tex = new THREE.CanvasTexture(c);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        resolve(tex);
-      }
-    );
-  });
-}
-
-function placeAroundCircle(n, radius, y = 0) {
-  const arr = [];
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 + Math.PI * 0.25;
-    arr.push(new THREE.Vector3(Math.cos(a) * radius, y, Math.sin(a) * radius));
+  // Helpers
+  function makeTextTexture(text, color = '#ffffff') {
+    const padX = 24, padY = 12;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const font = '600 46px system-ui,Segoe UI,Roboto,Helvetica,Arial';
+    ctx.font = font;
+    const metrics = ctx.measureText(text);
+    canvas.width = Math.ceil(metrics.width + padX * 2);
+    canvas.height = 72 + padY * 2;
+    // bg
+    ctx.fillStyle = 'rgba(20,20,26,0.85)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    // text
+    ctx.fillStyle = color;
+    ctx.font = font;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, padX, canvas.height/2);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.anisotropy = 4;
+    tex.needsUpdate = true;
+    return tex;
   }
-  return arr;
-}
 
-const clickable = new Map();
-const ray = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let hovered = null;
+  function makeLogoTexture(url, fallbackText, color) {
+    return new Promise((resolve) => {
+      const texLoader = new THREE.TextureLoader();
+      texLoader.load(url, (t) => { t.anisotropy = 4; resolve(t); }, undefined, () => {
+        resolve(makeTextTexture(fallbackText, color));
+      });
+    });
+  }
 
-// ---------- Build mall ----------
-async function buildMall(stores) {
-  // UI chips
-  chipRow.innerHTML = '';
-  stores.forEach((s) => {
-    const chip = document.createElement('div');
-    chip.className = 'chip';
-    chip.dataset.id = s.id;
-    chip.innerHTML = `<span class="dot" style="background:${s.color || '#6aa0ff'}"></span>${s.name}`;
-    chip.onclick = () => window.open(s.link, '_blank');
-    chipRow.appendChild(chip);
-  });
+  // Build a brand sign (panel + post), with subtle light
+  async function buildSign(store, radius = 10, y = 1.2) {
+    const g = new THREE.Group();
+    const angle = (store.angle ?? 0) * Math.PI/180;
+    const x = radius * Math.sin(angle);
+    const z = radius * Math.cos(angle);
 
-  // 3D signs arranged around a circle
-  const positions = placeAroundCircle(stores.length, 6.5, 0);
+    g.position.set(x, 0, z);
+    g.lookAt(0,1,0);
 
-  for (let i = 0; i < stores.length; i++) {
-    const s = stores[i];
-    const group = new THREE.Group();
-    group.position.copy(positions[i]);
-    group.lookAt(0, 1.2, 0);
+    // Panel
+    const logo = await makeLogoTexture(store.logo, store.name, store.color);
+    const panelGeo = new THREE.PlaneGeometry(1.8, 1.2);
+    const panelMat = new THREE.MeshStandardMaterial({ map: logo, roughness: 0.8, metalness: 0.05 });
+    const panel = new THREE.Mesh(panelGeo, panelMat);
+    panel.position.set(0, y, 0);
+    panel.castShadow = true;
+    panel.userData = { link: store.link, id: store.id, type: 'panel' };
+    g.add(panel);
+
+    // Backplate (thin)
+    const backGeo = new THREE.BoxGeometry(1.85, 1.25, 0.05);
+    const backMat = new THREE.MeshStandardMaterial({ color: 0x111217, metalness: 0.1, roughness: 0.9 });
+    const back = new THREE.Mesh(backGeo, backMat);
+    back.position.set(0, y, -0.03);
+    back.castShadow = true;
+    g.add(back);
 
     // Post
-    const post = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.09, 1.2, 24),
-      new THREE.MeshStandardMaterial({ color: 0x1d2027, roughness: 0.6, metalness: 0.05 })
-    );
-    post.position.set(0, 0.6, -0.04);
+    const postGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.4, 16);
+    const post = new THREE.Mesh(postGeo, new THREE.MeshStandardMaterial({ color: 0x333844, metalness: 0.2, roughness: 0.8 }));
+    post.position.set(0, 0.55, -0.25);
     post.castShadow = true;
-    post.receiveShadow = true;
-    group.add(post);
+    g.add(post);
 
-    // Board (rounded box)
-    const w = 1.05, h = 1.35, r = 0.12, d = 0.08;
-    const shape = roundedRectShape(w, h, r);
-    const geo = new THREE.ExtrudeGeometry(shape, { depth: d, bevelEnabled: false });
-    geo.computeVertexNormals();
-    const boardMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(s.color || '#6aa0ff').convertSRGBToLinear().multiplyScalar(0.6),
-      roughness: 0.5,
-      metalness: 0.1,
-      envMapIntensity: 0.9
-    });
-    const board = new THREE.Mesh(geo, boardMat);
-    board.position.set(0, 1.4, 0);
-    board.castShadow = true;
-    board.receiveShadow = true;
-    group.add(board);
+    // Rect fill light near the sign
+    const rect = new THREE.RectAreaLight(store.color ?? '#6aa0ff', 1.6, 1.6, 1.1);
+    rect.position.set(0, y+0.1, 0.85);
+    rect.lookAt(panel.position.clone().add(new THREE.Vector3(0,0,-0.5)));
+    g.add(rect);
 
-    // Logo plane (slightly in front)
-    const logoTex = await loadLogoTexture(s.logo, s.name);
-    logoTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    const logo = new THREE.Mesh(
-      new THREE.PlaneGeometry(w * 0.86, h * 0.8),
-      new THREE.MeshBasicMaterial({ map: logoTex, transparent: true })
-    );
-    logo.position.set(0, 1.4, d * 0.52);
-    group.add(logo);
+    // Label sprite above
+    const labelTex = makeTextTexture(store.name);
+    const labelMat = new THREE.SpriteMaterial({ map: labelTex, depthTest:false });
+    const label = new THREE.Sprite(labelMat);
+    label.scale.set( labelTex.image.width/200, labelTex.image.height/200, 1 );
+    label.position.set(0, y+0.9, 0);
+    g.add(label);
 
-    // Title tag above
-    const title = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: (() => {
-          const c = document.createElement('canvas');
-          c.width = 512; c.height = 128;
-          const ctx = c.getContext('2d');
-          ctx.fillStyle = 'rgba(0,0,0,0.65)';
-          ctx.fillRect(0, 0, c.width, c.height);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 56px system-ui, Segoe UI, Roboto';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(s.name, c.width / 2, c.height / 2);
-          const t = new THREE.CanvasTexture(c);
-          t.colorSpace = THREE.SRGBColorSpace;
-          return t;
-        })()
-      })
-    );
-    title.position.set(0, 2.2, 0.02);
-    title.scale.set(1.4, 0.35, 1);
-    group.add(title);
+    scene.add(g);
+    clickable.push(panel, back);
+  }
 
-    // Local area light to make the sign read like a display
-    const area = new THREE.RectAreaLight(0xffffff, 15, w * 1.2, h * 1.2);
-    area.position.set(0, 1.45, 1.0);
-    area.lookAt(group.position.x, 1.45, group.position.z);
-    group.add(area);
+  // Portal arch (optional)
+  async function tryLoadPortal() {
+    const loader = new GLTFLoader();
+    try {
+      const url = '/assets/models/portal.glb';
+      await new Promise((res, rej) => {
+        fetch(url, { method: 'HEAD' }).then(r => r.ok ? res() : rej()).catch(rej);
+      });
+      loader.load('/assets/models/portal.glb', (gltf) => {
+        const arch = gltf.scene;
+        arch.position.set(0, 0, 0);
+        arch.scale.set(1.2, 1.2, 1.2);
+        arch.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+        scene.add(arch);
+      });
+    } catch {}
+  }
 
-    // Subtle light “glow” on the ground
-    const glow = new THREE.SpotLight(new THREE.Color(s.color || '#6aa0ff'), 1.2, 4.2, THREE.MathUtils.degToRad(40), 0.35, 0.3);
-    glow.p
+  // Build all signs
+  const clickable = [];
+  for (const s of STORES) await buildSign(s);
+
+  // Raycast clicks
+  const ray = new THREE.Raycaster();
+  const v2 = new THREE.Vector2();
+  function onClick(ev) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    v2.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    v2.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+    ray.setFromCamera(v2, camera);
+    const hit = ray.intersectObjects(clickable, true)[0];
+    if (hit?.object?.userData?.link) {
+      window.open(hit.object.userData.link, '_blank');
+    }
+  }
+  renderer.domElement.addEventListener('click', onClick);
+
+  // Focus a store by rotating controls target
+  function focusStore(id) {
+    const s = STORES.find(x => x.id === id); if (!s) return;
+    const targetAngle = (s.angle ?? 0) * Math.PI/180;
+    const r = 10;
+    const camGoal = new THREE.Vector3(r * Math.sin(targetAngle), camera.position.y, r * Math.cos(targetAngle));
+    const start = camera.position.clone();
+    const startTime = performance.now();
+    const dur = 650;
+    (function tween() {
+      const t = Math.min(1, (performance.now() - startTime) / dur);
+      camera.position.lerpVectors(start, camGoal, t);
+      controls.target.lerp(new THREE.Vector3(0,1.2,0), 0.1);
+      if (t < 1) requestAnimationFrame(tween);
+    })();
+  }
+
+  // Try optional portal
+  tryLoadPortal();
+
+  // Resize
+  function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+  window.addEventListener('resize', onResize);
+
+  // Animate
+  function tick() {
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  // Hide loader when ready-ish
+  setTimeout(() => loaderEl.classList.add('hide'), 300);
+}

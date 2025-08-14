@@ -1,12 +1,5 @@
-[build]
-publish = "."
-
 [[headers]]
-  for = "/assets/*"
-  [headers.values]
-  cache-control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-  X-Content-Type-Options = "nosniff"
+for = "/*"
+[headers.values]
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "no-referrer-when-downgrade"
