@@ -4,55 +4,20 @@
     "name": "Faithfully Faded",
     "logo": "/assets/images/faithfully-faded.png",
     "link": "https://www.faithfully-faded.com",
-    "color": "#213a8f",
-    "angle": -30
+    "color": "#213a8f"
   },
   {
     "id": "concrete-rose",
     "name": "Concrete Rose",
     "logo": "/assets/images/concrete-rose.png",
     "link": "https://concrete-rose.world",
-    "color": "#bb3a45",
-    "angle": 0
+    "color": "#bb3a45"
   },
   {
     "id": "cafe-sativa",
     "name": "Caf\u00e9 Sativa",
     "logo": "/assets/images/cafe-sativa.png",
     "link": "https://cafe-sativa-llc-uzn6.b12sites.com/",
-    "color": "#56a06a",
-    "angle": 30
-  },
-  {
-    "id": "wanderlust",
-    "name": "Wanderlust",
-    "logo": "/assets/images/wanderlust.png",
-    "link": "#",
-    "color": "#d98e2c",
-    "angle": 60
-  },
-  {
-    "id": "hoe",
-    "name": "H.O.E.",
-    "logo": "/assets/images/hoe.png",
-    "link": "#",
-    "color": "#8f21a8",
-    "angle": -60
-  },
-  {
-    "id": "tru-skool-records",
-    "name": "Tru Skool Records",
-    "logo": "/assets/images/tru-skool-records.png",
-    "link": "#",
-    "color": "#2f9bd8",
-    "angle": 90
-  },
-  {
-    "id": "glyph",
-    "name": "Glyph",
-    "logo": "/assets/images/glyph.png",
-    "link": "#",
-    "color": "#e25c2a",
-    "angle": -90
+    "color": "#56a06a"
   }
 ]
