@@ -1,23 +1,13 @@
-# Virtual Tru Skool Mall (Three.js Starter)
+# Virtual Tru Skool Mall (Turnkey)
 
-A lightweight, production-ready Three.js mall starter you can deploy to Netlify/Vercel
-with **no build step**. Just serve `index.html` from the root.
+Static three.js showroom — deploy to Netlify (or any static host).
 
-## Run locally
-```bash
-# Python
-python -m http.server 5173
-# then open http://localhost:5173
-```
+- Works with **local vendor files** in `/vendor/three/*` OR falls back to CDNs.
+- Add/edit brands in `src/stores.json`; logos in `assets/images/`.
+- Optional `assets/models/portal.glb` for a 3D portal.
 
-## Deploy
-- **Netlify**: Site settings → Build & deploy → Publish directory: `.`
-- **Vercel**: New Project → `Import` and set Framework as `Other` so it serves static root.
-
-## Customize
-- **Brands**: Edit `src/stores.json`. Place logo PNGs in `assets/images/` and reference them.
-- **Portal arch**: Drop a GLB named `portal.glb` into `assets/models/`.
-- **Lighting/positions**: Tweak values in `src/main.js`.
-
-This template lazy-loads Three.js modules from a CDN with a backup CDN. If both fail,
-the UI stays up and shows a helpful message in the loader.
+## Optional local vendor
+Copy official three.js ESM files into `vendor/three/` for no‑CDN operation:
+- `three.module.js`
+- `examples/jsm/controls/OrbitControls.js` → place as `vendor/three/OrbitControls.js`
+- `examples/jsm/loaders/GLTFLoader.js` → place as `vendor/three/GLTFLoader.js`
