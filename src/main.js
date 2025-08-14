@@ -1,288 +1,260 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+// src/main.js
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/loaders/GLTFLoader.js';
+import { Sky } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/objects/Sky.js';
+import { RectAreaLightUniformsLib } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
-const elCanvas = document.getElementById('three');
-const elLoader = document.getElementById('loader');
-const elLoaderMsg = document.getElementById('loaderMsg');
-const elChipRow = document.getElementById('chipRow');
+const sel = (q) => document.querySelector(q);
+const canvas = sel('#three');
+const chipRow = sel('#chipRow');
 
-// ---------- load data ----------
-async function loadStores() {
-  const res = await fetch('/src/stores.json', { cache: 'no-cache' });
-  if (!res.ok) throw new Error('Failed to load stores.json');
+async function getStores() {
+  const res = await fetch('/src/stores.json', { cache: 'no-store' });
+  if (!res.ok) throw new Error('stores.json not found');
   return res.json();
 }
 
-// ---------- three setup ----------
-const renderer = new THREE.WebGLRenderer({ canvas: elCanvas, antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
-renderer.setSize(window.innerWidth, window.innerHeight);
+// ---------- Renderer / Scene / Camera ----------
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.physicallyCorrectLights = true;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x0a0a0d, 0.03);
+scene.background = new THREE.Color(0x0b0c10);
 
-const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(0, 5.5, 12);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 2.3, 7.2);
+scene.add(camera);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.maxDistance = 22;
-controls.minDistance = 6;
-controls.minPolarAngle = Math.PI * 0.23;
-controls.maxPolarAngle = Math.PI * 0.52;
+controls.target.set(0, 1.3, 0);
+controls.minDistance = 3.5;
+controls.maxDistance = 18;
+controls.minPolarAngle = THREE.MathUtils.degToRad(15);
+controls.maxPolarAngle = THREE.MathUtils.degToRad(75);
 
-// lights
-{
-  const hemi = new THREE.HemisphereLight(0x8796ff, 0x0c0c10, 0.6);
-  scene.add(hemi);
+// ---------- Environment (physically-based sky to PMREM) ----------
+const sky = new Sky();
+sky.scale.setScalar(800);
+scene.add(sky);
 
-  const dir = new THREE.DirectionalLight(0xffffff, 1.1);
-  dir.position.set(6, 10, 6);
-  dir.castShadow = true;
-  dir.shadow.mapSize.set(1024, 1024);
-  scene.add(dir);
+const pmrem = new THREE.PMREMGenerator(renderer);
+const sun = new THREE.Vector3();
+function updateSky() {
+  // Good indoor-balanced light with subtle sun
+  const phi = THREE.MathUtils.degToRad(80);   // elevation
+  const theta = THREE.MathUtils.degToRad(25); // azimuth
+  sun.setFromSphericalCoords(1, phi, theta);
+  sky.material.uniforms['turbidity'].value = 2.1;
+  sky.material.uniforms['rayleigh'].value = 1.2;
+  sky.material.uniforms['mieCoefficient'].value = 0.0045;
+  sky.material.uniforms['mieDirectionalG'].value = 0.9;
+  sky.material.uniforms['sunPosition'].value.copy(sun);
+
+  const envRT = pmrem.fromScene(sky, 0.05);
+  scene.environment = envRT.texture;
 }
+updateSky();
 
-// ground (smooth dark disc)
-{
-  const geo = new THREE.CircleGeometry(22, 96);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x0e0e12, roughness: 0.85, metalness: 0.02 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.receiveShadow = true;
-  scene.add(mesh);
+// ---------- Ground ----------
+const groundGeo = new THREE.CircleGeometry(40, 128);
+const groundMat = new THREE.MeshStandardMaterial({
+  color: new THREE.Color(0x101115).convertSRGBToLinear().offsetHSL(0, 0, 0.02),
+  roughness: 0.9,
+  metalness: 0.0
+});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
 
-  // subtle rings
-  const ringGeo = new THREE.RingGeometry(10.8, 11, 128);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0x15151b, side: THREE.DoubleSide });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
+// Subtle ring pattern for depth (just a faint darker ring)
+const rings = new THREE.Group();
+for (let i = 1; i <= 6; i++) {
+  const r = 3.5 * i;
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(r - 0.06, r + 0.06, 256),
+    new THREE.MeshBasicMaterial({ color: 0x0a0b0e, transparent: true, opacity: 0.25 })
+  );
   ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.001;
-  scene.add(ring);
+  rings.add(ring);
 }
+scene.add(rings);
 
-// utilities
+// ---------- Lights ----------
+RectAreaLightUniformsLib.init(); // for area lights
+
+const hemi = new THREE.HemisphereLight(0x6b8cff, 0x1b1b21, 0.35);
+scene.add(hemi);
+
+const key = new THREE.DirectionalLight(0xffffff, 2.0);
+key.position.set(6, 8, 4);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.bias = -0.0006;
+key.shadow.camera.near = 1;
+key.shadow.camera.far = 30;
+scene.add(key);
+
+const rim = new THREE.DirectionalLight(0x9fbaff, 0.8);
+rim.position.set(-6, 4, -6);
+scene.add(rim);
+
+// ---------- Helpers ----------
 const loader = new THREE.TextureLoader();
-function loadTexture(url) {
-  return new Promise((resolve, reject) => loader.load(url, resolve, undefined, reject));
-}
+loader.colorSpace = THREE.SRGBColorSpace;
 
-function roundedRectShape(w, h, r){
+function roundedRectShape(w, h, r) {
   const s = new THREE.Shape();
-  const x = -w/2, y = -h/2;
-  s.moveTo(x+r, y);
-  s.lineTo(x+w-r, y);
-  s.quadraticCurveTo(x+w, y, x+w, y+r);
-  s.lineTo(x+w, y+h-r);
-  s.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-  s.lineTo(x+r, y+h);
-  s.quadraticCurveTo(x, y+h, x, y+h-r);
-  s.lineTo(x, y+r);
-  s.quadraticCurveTo(x, y, x+r, y);
+  const x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y);
+  s.lineTo(x + w - r, y);
+  s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r);
+  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h);
+  s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r);
+  s.quadraticCurveTo(x, y, x + r, y);
   return s;
 }
 
-function makeSign({ name, logo, color }){
-  const group = new THREE.Group();
-
-  // panel (extruded rounded rect)
-  const W=2.2, H=3, R=0.25, D=0.25;
-  const shape = roundedRectShape(W, H, R);
-  const extrude = new THREE.ExtrudeGeometry(shape, { depth: D, bevelEnabled: false, curveSegments: 24 });
-  extrude.translate(0, 0, -D/2);
-  const faceMat = new THREE.MeshStandardMaterial({ color: 0x1c1f2a, roughness: 0.6, metalness: 0.15 });
-  const edgeMat = new THREE.MeshStandardMaterial({ color: 0x0b0c10, roughness: 0.5, metalness: 0.3 });
-  const panel = new THREE.Mesh(extrude, [edgeMat, faceMat]);
-  panel.castShadow = true; panel.receiveShadow = true;
-  group.add(panel);
-
-  // logo texture on a slightly inset plane
-  const planeGeo = new THREE.PlaneGeometry(W*0.92, H*0.9);
-  const planeMat = new THREE.MeshBasicMaterial({ transparent: true });
-  const plane = new THREE.Mesh(planeGeo, planeMat);
-  plane.position.z = 0.01;
-  group.add(plane);
-
-  // pole
-  const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 3.5, 16);
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0x121318, roughness: 0.9 });
-  const pole = new THREE.Mesh(poleGeo, poleMat);
-  pole.position.set(0, -2.6, 0.3);
-  pole.castShadow = true; pole.receiveShadow = true;
-  group.add(pole);
-
-  // name sprite (always faces camera)
-  const label = makeLabel(name);
-  label.position.set(0, H/2 + 0.6, 0);
-  group.add(label);
-
-  // soft coloured point light near sign
-  const pt = new THREE.PointLight(new THREE.Color(color), 0.75, 8, 2);
-  pt.position.set(0.5, 0.6, 1.2);
-  group.add(pt);
-
-  // load logo texture
-  loadTexture(logo).then(tex => {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    planeMat.map = tex;
-    planeMat.needsUpdate = true;
+async function loadLogoTexture(url, fallbackText) {
+  return new Promise((resolve) => {
+    loader.load(
+      url,
+      (tex) => resolve(tex),
+      undefined,
+      () => {
+        // Fallback: draw brand name onto a canvas texture (crisp on any DPI)
+        const c = document.createElement('canvas');
+        c.width = 1024; c.height = 1024;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#0f1116';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.fillStyle = '#eaeaf2';
+        ctx.font = 'bold 140px system-ui, Segoe UI, Roboto';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(fallbackText, c.width / 2, c.height / 2);
+        const tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        resolve(tex);
+      }
+    );
   });
-
-  // store click target
-  group.userData.clickable = true;
-  group.userData.name = name;
-  return group;
 }
 
-function makeLabel(text){
-  const padX = 24, padY = 10;
-  const ctx = document.createElement('canvas').getContext('2d');
-  ctx.font = '700 24px system-ui, Segoe UI, Roboto';
-  const mw = Math.max(140, ctx.measureText(text).width + padX*2);
-  const mh = 42 + padY*2;
-  ctx.canvas.width = mw; ctx.canvas.height = mh;
-  // background panel
-  ctx.fillStyle = 'rgba(10,12,18,.85)';
-  roundRect(ctx, 0, 0, mw, mh, 12); ctx.fill();
-  // text
-  ctx.fillStyle = '#ffffff'; ctx.font = '700 24px system-ui, Segoe UI, Roboto';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, mw/2, mh/2);
-  const tex = new THREE.CanvasTexture(ctx.canvas); tex.colorSpace = THREE.SRGBColorSpace;
-  const sprMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-  const spr = new THREE.Sprite(sprMat);
-  const scale = 0.012; spr.scale.set(mw*scale, mh*scale, 1);
-  return spr;
-}
-function roundRect(ctx, x, y, w, h, r){
-  ctx.beginPath();
-  ctx.moveTo(x+r, y);
-  ctx.lineTo(x+w-r, y);
-  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-  ctx.lineTo(x+w, y+h-r);
-  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-  ctx.lineTo(x+r, y+h);
-  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-  ctx.lineTo(x, y+r);
-  ctx.quadraticCurveTo(x, y, x+r, y);
-  ctx.closePath();
+function placeAroundCircle(n, radius, y = 0) {
+  const arr = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + Math.PI * 0.25;
+    arr.push(new THREE.Vector3(Math.cos(a) * radius, y, Math.sin(a) * radius));
+  }
+  return arr;
 }
 
-// raycaster for clicks / hover
-const raycaster = new THREE.Raycaster();
+const clickable = new Map();
+const ray = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let hoverObj = null;
+let hovered = null;
 
-function onPointerMove(e){
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-}
-function onClick(){
-  if (!hoverObj) return;
-  const url = hoverObj.userData?.url;
-  if (url) window.open(url, '_blank');
-}
-
-renderer.domElement.addEventListener('pointermove', onPointerMove);
-renderer.domElement.addEventListener('click', onClick);
-
-// build chips
-function renderChips(stores){
-  elChipRow.innerHTML = '';
-  for (const s of stores){
+// ---------- Build mall ----------
+async function buildMall(stores) {
+  // UI chips
+  chipRow.innerHTML = '';
+  stores.forEach((s) => {
     const chip = document.createElement('div');
     chip.className = 'chip';
     chip.dataset.id = s.id;
-    chip.innerHTML = `<span class="dot" style="background:${s.color}"></span><span>${s.name}</span>`;
+    chip.innerHTML = `<span class="dot" style="background:${s.color || '#6aa0ff'}"></span>${s.name}`;
     chip.onclick = () => window.open(s.link, '_blank');
-    elChipRow.appendChild(chip);
-  }
-}
-
-// place items in a circle
-function layoutCircle(stores){
-  const radius = 11;
-  const y = 1.2;
-  const step = (Math.PI * 1.2) / (stores.length - 1 || 1);
-  const start = -Math.PI * 0.6;
-  return stores.map((s, i) => {
-    const a = start + i * step;
-    return new THREE.Vector3(Math.cos(a)*radius, y, Math.sin(a)*radius);
+    chipRow.appendChild(chip);
   });
-}
 
-// optional portal (if exists)
-async function tryLoadPortal(){
-  try {
-    const url = '/assets/models/portal.glb';
-    // HEAD check by attempting a fetch of first bytes
-    const res = await fetch(url, { method: 'GET' });
-    if (!res.ok) return;
-    const loader = new GLTFLoader();
-    return new Promise((resolve, reject) => {
-      loader.load(url, gltf => {
-        const obj = gltf.scene;
-        obj.traverse(o => { o.castShadow = true; o.receiveShadow = true; });
-        obj.position.set(0, 0, 0);
-        scene.add(obj);
-        resolve(obj);
-      }, undefined, reject);
+  // 3D signs arranged around a circle
+  const positions = placeAroundCircle(stores.length, 6.5, 0);
+
+  for (let i = 0; i < stores.length; i++) {
+    const s = stores[i];
+    const group = new THREE.Group();
+    group.position.copy(positions[i]);
+    group.lookAt(0, 1.2, 0);
+
+    // Post
+    const post = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.09, 1.2, 24),
+      new THREE.MeshStandardMaterial({ color: 0x1d2027, roughness: 0.6, metalness: 0.05 })
+    );
+    post.position.set(0, 0.6, -0.04);
+    post.castShadow = true;
+    post.receiveShadow = true;
+    group.add(post);
+
+    // Board (rounded box)
+    const w = 1.05, h = 1.35, r = 0.12, d = 0.08;
+    const shape = roundedRectShape(w, h, r);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: d, bevelEnabled: false });
+    geo.computeVertexNormals();
+    const boardMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(s.color || '#6aa0ff').convertSRGBToLinear().multiplyScalar(0.6),
+      roughness: 0.5,
+      metalness: 0.1,
+      envMapIntensity: 0.9
     });
-  } catch { /* no portal file - ignore */ }
-}
+    const board = new THREE.Mesh(geo, boardMat);
+    board.position.set(0, 1.4, 0);
+    board.castShadow = true;
+    board.receiveShadow = true;
+    group.add(board);
 
-// main
-(async function init(){
-  try{
-    elLoaderMsg.textContent = 'Loading brands…';
-    const STORES = await loadStores();
-    renderChips(STORES);
+    // Logo plane (slightly in front)
+    const logoTex = await loadLogoTexture(s.logo, s.name);
+    logoTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const logo = new THREE.Mesh(
+      new THREE.PlaneGeometry(w * 0.86, h * 0.8),
+      new THREE.MeshBasicMaterial({ map: logoTex, transparent: true })
+    );
+    logo.position.set(0, 1.4, d * 0.52);
+    group.add(logo);
 
-    // positions + create signs
-    const positions = layoutCircle(STORES);
-    STORES.forEach((s, i) => {
-      const sign = makeSign(s);
-      sign.position.copy(positions[i]);
-      sign.lookAt(0, 1.4, 0);
-      sign.userData.url = s.link;
-      scene.add(sign);
-    });
+    // Title tag above
+    const title = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: (() => {
+          const c = document.createElement('canvas');
+          c.width = 512; c.height = 128;
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = 'rgba(0,0,0,0.65)';
+          ctx.fillRect(0, 0, c.width, c.height);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 56px system-ui, Segoe UI, Roboto';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(s.name, c.width / 2, c.height / 2);
+          const t = new THREE.CanvasTexture(c);
+          t.colorSpace = THREE.SRGBColorSpace;
+          return t;
+        })()
+      })
+    );
+    title.position.set(0, 2.2, 0.02);
+    title.scale.set(1.4, 0.35, 1);
+    group.add(title);
 
-    // portal (optional)
-    elLoaderMsg.textContent = 'Building scene…';
-    await tryLoadPortal();
+    // Local area light to make the sign read like a display
+    const area = new THREE.RectAreaLight(0xffffff, 15, w * 1.2, h * 1.2);
+    area.position.set(0, 1.45, 1.0);
+    area.lookAt(group.position.x, 1.45, group.position.z);
+    group.add(area);
 
-    elLoader.classList.add('hide');
-    animate();
-  } catch (err){
-    console.error(err);
-    elLoaderMsg.textContent = 'Error starting app (see console)';
-  }
-})();
-
-function animate(){
-  requestAnimationFrame(animate);
-
-  // hover hit test
-  raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObjects(scene.children, true).filter(h => h.object.parent?.userData?.clickable || h.object.userData?.clickable);
-  const newHover = hits.length ? (hits[0].object.parent?.userData?.clickable ? hits[0].object.parent : hits[0].object) : null;
-  if (newHover !== hoverObj){
-    if (hoverObj){ hoverObj.scale.set(1,1,1); }
-    hoverObj = newHover;
-    if (hoverObj){ hoverObj.scale.set(1.03, 1.03, 1.03); }
-  }
-
-  controls.update();
-  renderer.render(scene, camera);
-}
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+    // Subtle light “glow” on the ground
+    const glow = new THREE.SpotLight(new THREE.Color(s.color || '#6aa0ff'), 1.2, 4.2, THREE.MathUtils.degToRad(40), 0.35, 0.3);
+    glow.p
