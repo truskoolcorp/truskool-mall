@@ -5,100 +5,103 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Virtual Tru Skool Mall</title>
   <meta name="description" content="Virtual Tru Skool Mall – three.js showroom" />
-
-  <!-- Local import map so example loaders can resolve `import 'three'` when using /vendor fallback -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "/vendor/three/three.module.js"
-    }
-  }
-  </script>
-
   <style>
-    :root{
-      --bg:#0b0b0e; --panel:#131419; --text:#e8e8ef; --muted:#9aa0a6;
-      --chip:#1a1b22; --chip-b:#2b2d36;
+    :root {
+      --bg: #0c0c10;
+      --panel: #141418;
+      --text: #e8e8ef;
+      --muted: #9aa0a6;
+      --chip: #1b1c22;
+      --chip-border: #2a2c33;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
+    html, body { height:100%; }
+    body {
       margin:0; background:var(--bg); color:var(--text);
-      font:14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       overflow:hidden;
     }
 
-    /* Top */
-    .topbar{
-      position:fixed; left:12px; right:12px; top:12px; z-index:20;
-      display:flex; align-items:center; gap:10px; padding:8px 10px;
-      background:rgba(19,20,25,.6); border:1px solid var(--chip-b);
-      border-radius:12px; backdrop-filter:blur(6px);
+    /* Top bar */
+    .topbar {
+      position:fixed; inset:12px 12px auto 12px; z-index:20;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      background:rgba(20,20,26,.6); border:1px solid var(--chip-border);
+      border-radius:12px; padding:8px 10px; backdrop-filter: blur(6px);
     }
-    .brand{font-weight:800; letter-spacing:.3px; opacity:.9; margin-right:6px}
-    #chipRow{display:flex; flex-wrap:wrap; gap:8px}
-    .chip{
-      display:inline-flex; align-items:center; gap:8px; padding:6px 10px;
-      border:1px solid var(--chip-b); background:var(--chip); border-radius:999px;
-      cursor:pointer; user-select:none; transition:transform .12s ease, border-color .12s ease;
+    .brand { font-weight:800; letter-spacing:.3px; margin-right:6px; opacity:.9 }
+    .chip {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      background:var(--chip); border:1px solid var(--chip-border);
+      cursor:pointer; user-select:none;
+      transition:transform .12s ease, border-color .12s ease, background .12s ease;
     }
-    .chip:hover{transform:translateY(-1px); border-color:#3a3d47}
-    .dot{width:8px; height:8px; border-radius:50%}
+    .chip .dot { width:8px; height:8px; border-radius:50%; opacity:.95 }
+    .chip:hover { transform: translateY(-1px); border-color:#3a3d47; }
 
-    .tip{
-      position:fixed; right:12px; top:54px; z-index:19;
-      color:var(--muted); font-size:12px; opacity:.9;
-      background:rgba(19,20,25,.6); border:1px solid var(--chip-b);
-      border-radius:10px; padding:6px 10px; backdrop-filter:blur(6px);
+    .tip {
+      position:fixed; top:12px; right:12px; z-index:19;
+      color:var(--muted); font-size:12px; opacity:.85;
+      background:rgba(20,20,26,.6); border:1px solid var(--chip-border);
+      border-radius:10px; padding:6px 10px; backdrop-filter: blur(6px);
     }
 
-    canvas#three{position:fixed; inset:0; width:100%; height:100%; display:block}
+    /* Canvas */
+    canvas#three { position:fixed; inset:0; display:block; width:100%; height:100%; }
 
     /* Loader */
-    .loader{
-      position:fixed; inset:0; z-index:40; display:grid; place-items:center;
-      background: radial-gradient(ellipse at center, rgba(0,0,0,.35), rgba(0,0,0,.8) 60%, rgba(0,0,0,.92));
+    .loader {
+      position:fixed; inset:0; display:grid; place-items:center; z-index:40;
+      pointer-events:none; background: radial-gradient(ellipse at center, rgba(0,0,0,.35), rgba(0,0,0,.78) 60%, rgba(0,0,0,.92));
       transition:opacity .25s ease .05s, visibility 0s linear .3s;
-      pointer-events:none;
     }
-    .loader.hide{opacity:0; visibility:hidden}
-    .spinner{
-      width:52px; height:52px; border:3px solid rgba(255,255,255,.22);
+    .loader.hide { opacity:0; visibility:hidden; }
+    .spinner {
+      width:52px; height:52px; border:3px solid rgba(255,255,255,.2);
       border-top-color:#fff; border-radius:50%; animation:spin 1.1s linear infinite; margin:10px auto;
     }
-    .load-msg{text-align:center; font-weight:700; letter-spacing:.3px}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    .load-msg { text-align:center; color:#eaeaf2; font-weight:600; letter-spacing:.3px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .foot{
-      position:fixed; left:0; right:0; bottom:8px; text-align:center;
-      color:#80859a; font-size:11px; opacity:.8; pointer-events:none;
+    /* Footer */
+    .foot {
+      position:fixed; left:0; right:0; bottom:8px; text-align:center; color:#7c808a;
+      font-size:11px; opacity:.8; pointer-events:none;
     }
 
-    @media (max-width:640px){ .brand{display:none} .tip{display:none} }
+    @media (max-width:640px){
+      .brand { display:none }
+      .tip { display:none }
+    }
   </style>
 </head>
 <body>
   <!-- UI -->
   <div class="topbar">
     <div class="brand">Virtual Tru Skool Mall</div>
-    <div id="chipRow"></div>
+    <div id="chipRow" style="display:flex;gap:8px;flex-wrap:wrap"></div>
   </div>
-  <div class="tip">Tip: click a brand chip or 3D sign to open its link.</div>
+  <div class="tip">Tip: click a brand chip or 3D sign to open its link. Press <b>L</b> for lighting modes.</div>
 
   <!-- 3D -->
   <canvas id="three"></canvas>
 
   <!-- Loader -->
   <div class="loader" id="loader" aria-live="polite">
-    <div>
-      <div class="spinner"></div>
-      <div class="load-msg" id="loaderMsg">Loading…</div>
-    </div>
+    <div class="load-msg" id="loaderMsg">Loading…</div>
+    <div class="spinner"></div>
   </div>
 
   <div class="foot">Tru Skool • three.js • Netlify-ready • Add avatars later</div>
 
   <!-- App -->
   <script type="module" src="/src/main.js"></script>
+  <script>
+    // safety: if the module fails to load entirely
+    window.addEventListener('error', () => {
+      const m = document.getElementById('loaderMsg');
+      if (m) m.textContent = 'Error starting app (check console)';
+    }, { once:true });
+  </script>
 </body>
 </html>
