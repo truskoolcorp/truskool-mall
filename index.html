@@ -24,4 +24,295 @@
       position:fixed; left:12px; right:12px; top:12px; z-index:20;
       display:flex; align-items:center; gap:10px; padding:8px 10px;
       background:rgba(19,20,26,.55); border:1px solid var(--chip-b);
-      border-radius:12px; ba
+      border-radius:12px; backdrop-filter:blur(6px);
+    }
+    .brand{font-weight:800; letter-spacing:.3px; margin-right:6px; opacity:.95}
+    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      background:var(--chip); border:1px solid var(--chip-b); color:var(--text);
+      cursor:pointer; user-select:none; transition:.15s ease;
+    }
+    .chip:hover{transform:translateY(-1px); border-color:#3a3e49}
+    .dot{width:8px; height:8px; border-radius:50%}
+    .chip[data-id="faithfully-faded"] .dot{background:var(--brand1)}
+    .chip[data-id="concrete-rose"]   .dot{background:var(--brand2)}
+    .chip[data-id="cafe-sativa"]     .dot{background:var(--brand3)}
+    .tip{
+      position:fixed; top:12px; right:12px; z-index:19;
+      padding:6px 10px; font-size:12px; color:var(--muted);
+      background:rgba(19,20,26,.55); border:1px solid var(--chip-b);
+      border-radius:10px; backdrop-filter:blur(6px);
+    }
+    /* Canvas */
+    canvas#three{position:fixed; inset:0; width:100%; height:100%; display:block}
+    /* Loader */
+    .loader{
+      position:fixed; inset:0; display:grid; place-items:center; z-index:30;
+      background:radial-gradient(ellipse at center, rgba(0,0,0,.25), rgba(0,0,0,.85) 60%);
+      transition:opacity .25s ease .05s, visibility 0s linear .3s;
+    }
+    .loader.hide{opacity:0; visibility:hidden}
+    .spinner{width:50px; height:50px; border:3px solid rgba(255,255,255,.22);
+      border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite; margin:8px auto}
+    .loadmsg{color:#e9ecf1; font-weight:600; letter-spacing:.2px; text-align:center}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* Footer */
+    .foot{position:fixed; left:0; right:0; bottom:8px; text-align:center; color:#818896; font-size:11px; opacity:.85}
+    @media (max-width:640px){ .brand{display:none} .tip{display:none} }
+  </style>
+</head>
+<body>
+  <!-- UI -->
+  <div class="topbar">
+    <div class="brand">Virtual Tru Skool Mall</div>
+    <div id="chipRow" class="chips"></div>
+  </div>
+  <div class="tip">Tip: click a top chip or a 3D sign to open its link.</div>
+
+  <!-- 3D -->
+  <canvas id="three"></canvas>
+
+  <!-- Loader -->
+  <div id="loader" class="loader" aria-live="polite">
+    <div>
+      <div class="spinner"></div>
+      <div id="loadMsg" class="loadmsg">Loading…</div>
+    </div>
+  </div>
+
+  <div class="foot">Starter • three.js • Netlify-ready • Add avatars later</div>
+
+  <!-- App -->
+  <script type="module">
+    import * as THREE from './vendor/three/three.module.js';
+    import { OrbitControls } from './vendor/three/OrbitControls.js';
+    import { GLTFLoader } from './vendor/three/GLTFLoader.js';
+
+    // ---------- Utilities ----------
+    const $ = sel => document.querySelector(sel);
+    const loaderEl = $('#loader');
+    const loadMsg  = $('#loadMsg');
+
+    function makeLabelTexture(text, bg='#1c2030'){
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = bg; ctx.fillRect(0,0,c.width,c.height);
+      ctx.fillStyle = '#e9ecf1';
+      ctx.font = 'bold 64px system-ui, Segoe UI, Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, c.width/2, c.height/2);
+      const tex = new THREE.CanvasTexture(c);
+      tex.anisotropy = 8; tex.encoding = THREE.sRGBEncoding;
+      return tex;
+    }
+
+    function colorFor(id){
+      if (id==='faithfully-faded') return 0x213a8f;
+      if (id==='concrete-rose')   return 0xbb3a45;
+      if (id==='cafe-sativa')     return 0x56a06a;
+      return 0x3a3f4a;
+    }
+
+    // ---------- Data (stores) ----------
+    async function loadStores(){
+      try{
+        const res = await fetch('./src/stores.json', {cache:'no-cache'});
+        if (!res.ok) throw new Error('stores.json not found');
+        return await res.json();
+      }catch(e){
+        console.warn('Falling back to inline stores.', e);
+        return [
+          {
+            id: 'faithfully-faded',
+            name: 'Faithfully Faded',
+            logo: '/assets/images/faithfully-faded.png',
+            link: 'https://www.faithfully-faded.com'
+          },
+          {
+            id: 'concrete-rose',
+            name: 'Concrete Rose',
+            logo: '/assets/images/concrete-rose.png',
+            link: 'https://concrete-rose.world'
+          },
+          {
+            id: 'cafe-sativa',
+            name: 'Café Sativa',
+            logo: '/assets/images/cafe-sativa.png',
+            link: 'https://cafe-sativa-llc-uzn6.b12sites.com/'
+          }
+        ];
+      }
+    }
+
+    // ---------- 3D Setup ----------
+    const canvas = $('#three');
+    const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.setClearColor(0x0b0c10, 1);
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x0b0c10, 12, 28);
+
+    const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 100);
+    camera.position.set(0, 1.7, 7);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0,1.3,0);
+    controls.minDistance = 4; controls.maxDistance = 15;
+
+    // Lights
+    const hemi = new THREE.HemisphereLight(0x93a4ff, 0x0b0c10, 0.6);
+    scene.add(hemi);
+    const dir  = new THREE.DirectionalLight(0xffffff, 1.0);
+    dir.position.set(3,5,2);
+    dir.castShadow = false;
+    scene.add(dir);
+
+    // Ground (big dark disc)
+    const g = new THREE.CircleGeometry(20, 64);
+    const m = new THREE.MeshStandardMaterial({color:0x0e1016, roughness:.95, metalness:0});
+    const ground = new THREE.Mesh(g, m);
+    ground.rotation.x = -Math.PI/2;
+    ground.position.y = 0;
+    scene.add(ground);
+
+    // ---------- Signs & Portal ----------
+    const clickable = []; // meshes we can click
+
+    function makeSign(store, i, total){
+      // board
+      const boardGeo = new THREE.PlaneGeometry(1.1, 1.4);
+      const tex = makeLabelTexture(store.name, '#151822');
+      const boardMat = new THREE.MeshStandardMaterial({map: tex, color: colorFor(store.id)});
+      const board = new THREE.Mesh(boardGeo, boardMat);
+      board.userData.link = store.link;
+
+      // simple post
+      const post = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03,0.03,0.9,12),
+        new THREE.MeshStandardMaterial({color:0x2f323b, roughness:.8})
+      );
+      post.position.y = -1.15;
+
+      const group = new THREE.Group();
+      group.add(board, post);
+
+      // placement on an arc
+      const radius = 5;
+      const angle = (i - (total-1)/2) * (Math.PI/7); // spread on arc
+      group.position.set(
+        Math.sin(angle)*radius,
+        1.3,
+        Math.cos(angle)*radius
+      );
+      group.lookAt(0,1.3,0);
+
+      scene.add(group);
+      clickable.push(board);
+    }
+
+    async function addPortal(){
+      try{
+        const gltfLoader = new GLTFLoader();
+        await new Promise((resolve, reject)=>{
+          gltfLoader.load(
+            '/assets/models/portal.glb',
+            (gltf)=>{
+              const portal = gltf.scene;
+              portal.scale.set(1,1,1);
+              portal.position.set(-2.3, 0.0, 1.4);
+              portal.rotation.y = Math.PI*0.25;
+              scene.add(portal);
+
+              // add a little glow spotlight to make it pop
+              const spot = new THREE.SpotLight(0x7fa6ff, 1.5, 8, Math.PI/6, .3, 1.2);
+              spot.position.set(-2.6, 2.4, 1.2);
+              scene.add(spot);
+              resolve();
+            },
+            undefined,
+            (err)=>reject(err)
+          );
+        });
+      }catch(err){
+        console.warn('Portal failed to load (ok to ignore for now).', err);
+      }
+    }
+
+    // ---------- Picking ----------
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function onClick(e){
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(clickable, true);
+      if (hits.length){
+        const obj = hits[0].object;
+        const url = obj.userData.link;
+        if (url) window.open(url, '_blank');
+      }
+    }
+    renderer.domElement.addEventListener('click', onClick);
+
+    // ---------- UI ----------
+    function buildChips(stores){
+      const row = document.getElementById('chipRow');
+      row.innerHTML = '';
+      for (const s of stores){
+        const el = document.createElement('div');
+        el.className = 'chip';
+        el.dataset.id = s.id;
+        el.innerHTML = `<span class="dot"></span> ${s.name}`;
+        el.onclick = () => window.open(s.link, '_blank');
+        row.appendChild(el);
+      }
+    }
+
+    // ---------- Main ----------
+    async function main(){
+      try{
+        loadMsg.textContent = 'Loading scene…';
+        const stores = await loadStores();
+        buildChips(stores);
+        stores.forEach((s,i)=> makeSign(s,i,stores.length));
+        await addPortal();
+      }catch(err){
+        console.error(err);
+        loadMsg.textContent = 'Error starting app — check console';
+      }finally{
+        loaderEl.classList.add('hide');
+      }
+      animate();
+    }
+
+    function animate(){
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // ---------- Resize ----------
+    addEventListener('resize', ()=>{
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // Kickoff
+    if (!renderer.capabilities.isWebGL2 && !renderer.capabilities.isWebGL){
+      loadMsg.textContent = 'WebGL not available in this browser.';
+    }else{
+      main();
+    }
+  </script>
+</body>
+</html>
