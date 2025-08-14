@@ -24,28 +24,28 @@
     "id": "wanderlust",
     "name": "Wanderlust",
     "logo": "/assets/images/wanderlust.png",
-    "link": "https://example.com/wanderlust",
-    "color": "#a58bff"
+    "link": "https://example.com",
+    "color": "#d2a84c"
   },
   {
     "id": "hoe",
     "name": "H.O.E.",
     "logo": "/assets/images/hoe.png",
-    "link": "https://example.com/hoe",
-    "color": "#ff7aa2"
+    "link": "https://example.com",
+    "color": "#7a6cff"
   },
   {
-    "id": "ts-records",
+    "id": "trs-records",
     "name": "Tru Skool Records",
-    "logo": "/assets/images/tru-skool-records.png",
-    "link": "https://example.com/tsrecords",
-    "color": "#00c2ff"
+    "logo": "/assets/images/truskool-records.png",
+    "link": "https://example.com",
+    "color": "#ff6a88"
   },
   {
     "id": "glyph",
     "name": "Glyph",
     "logo": "/assets/images/glyph.png",
-    "link": "https://example.com/glyph",
-    "color": "#ffaa3b"
+    "link": "https://example.com",
+    "color": "#00bcd4"
   }
 ]

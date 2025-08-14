@@ -1,2 +1,6 @@
 [build]
   publish = "."
+  command = "bash ./scripts/fetch-vendor.sh"
+
+[build.environment]
+  NODE_VERSION = "18"
