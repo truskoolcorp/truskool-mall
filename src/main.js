@@ -1,8 +1,6 @@
-// --- CDN ESM imports (no import map needed) ---
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/controls/OrbitControls.js';
-// If/when you need it:
-// import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/loaders/GLTFLoader.js';
+import * as THREE from '/vendor/three/build/three.module.js';
+import { OrbitControls } from '/vendor/three/examples/jsm/controls/OrbitControls.js';
+// import { GLTFLoader } from '/vendor/three/examples/jsm/loaders/GLTFLoader.js';
 
 // Grab canvas / renderer
 const canvas = document.getElementById('three');
