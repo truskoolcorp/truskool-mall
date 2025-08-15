@@ -1,16 +1,1 @@
-{
-  "name": "truskool-mall-webxr",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview --port 5000"
-  },
-  "dependencies": {
-    "three": "^0.154.0"
-  },
-  "devDependencies": {
-    "vite": "^5.0.0"
-  }
-}
+{\n  "name": "truskool-mall-webxr",\n  "version": "0.1.0",\n  "private": true,\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build",\n    "preview": "vite preview --port 5000"\n  },\n  "dependencies": {\n    "three": "^0.154.0"\n  },\n  "devDependencies": {\n    "vite": "^5.0.0"\n  }\n}
