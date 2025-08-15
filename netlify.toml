@@ -1,41 +1,22 @@
-# Static site (no build). Adjust if you publish from a subfolder.
 [build]
   publish = "."
 
-# Security + CSP: allow our CDN for three.js and images/data blobs
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = '''
-      default-src 'self';
-      script-src 'self' https://cdn.jsdelivr.net;
-      connect-src 'self' https://cdn.jsdelivr.net;
-      img-src 'self' data: blob: https:;
-      style-src 'self' 'unsafe-inline';
-      font-src 'self' data:;
-      object-src 'none';
-      base-uri 'self';
-      frame-ancestors 'self';
-      upgrade-insecure-requests
-    '''
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    X-Content-Type-Options = "nosniff"
-    X-Frame-Options = "SAMEORIGIN"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-
-# Cache static assets reasonably
-[[headers]]
-  for = "/vendor/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=604800"
-
-# Make sure ES modules are served correctly (Netlify does this by default, but explicit is fine)
-[[headers]]
-  for = "/**/*.js"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
+  # Strict but Import-Map friendly (no inline scripts required)
+  Content-Security-Policy = '''
+    default-src 'self';
+    script-src 'self';
+    connect-src 'self';
+    img-src 'self' data:;
+    style-src 'self' 'unsafe-inline';
+    font-src 'self' data:;
+    object-src 'none';
+    base-uri 'self';
+    frame-ancestors 'self';
+    worker-src 'self' blob:;
+  '''
+  X-Content-Type-Options = "nosniff"
+  Referrer-Policy = "no-referrer"
+  Permissions-Policy = "camera=(), microphone=(), geolocation=()"
