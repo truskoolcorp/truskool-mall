@@ -2,49 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Virtual Tru Skool Mall</title>
-  <meta name="description" content="Virtual Tru Skool Mall – static three.js showroom" />
+  <meta name="description" content="Virtual Tru Skool Mall – three.js showroom" />
   <link rel="icon" href="/favicon.ico" />
-
-  <!-- Import map so example modules (OrbitControls/GLTFLoader) can resolve `three` -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js"
-    }
-  }
-  </script>
-
   <style>
     :root{
-      --bg:#0c0c0f; --panel:#141418; --text:#e8e8ef; --muted:#9aa0a6;
-      --chip:#1c1d23; --chip-b:#2a2c33; --accent:#6aa0ff;
+      --bg:#0b0c10;--panel:#14151b;--ink:#e9ecf1;--muted:#97a0ab;
+      --chip:#191b22;--chip-b:#2a2e37;--accent:#6aa0ff
     }
     html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    body{margin:0;background:var(--bg);color:var(--ink);
+      font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
     /* top bar */
     .topbar{position:fixed;left:12px;right:12px;top:12px;z-index:20;
-      display:flex;gap:10px;align-items:center;background:rgba(20,20,26,.6);
-      border:1px solid var(--chip-b);border-radius:12px;padding:8px 10px;backdrop-filter:blur(6px)}
-    .brand{font-weight:800;opacity:.9;margin-right:6px}
-    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;
-      border:1px solid var(--chip-b);background:var(--chip);cursor:pointer}
-    .chip .dot{width:8px;height:8px;border-radius:50%}
-    /* tip */
-    .tip{position:fixed;right:12px;top:56px;z-index:19;color:var(--muted);font-size:12px;
-      background:rgba(20,20,26,.6);border:1px solid var(--chip-b);border-radius:8px;padding:6px 10px}
-    /* canvas */
-    #three{position:fixed;inset:0;display:block;width:100%;height:100%}
-    /* loader */
-    .loader{position:fixed;inset:0;display:grid;place-items:center;z-index:40;background:
-      radial-gradient(ellipse at center,rgba(0,0,0,.35),rgba(0,0,0,.85))}
-    .spinner{width:56px;height:56px;border:3px solid rgba(255,255,255,.2);
-      border-top-color:#fff;border-radius:50%;animation:spin 1.1s linear infinite;margin:10px auto}
-    .msg{text-align:center;font-weight:600;letter-spacing:.3px}
+      display:flex;gap:10px;align-items:center;padding:8px 10px;
+      background:rgba(20,21,27,.6);backdrop-filter:blur(6px);
+      border:1px solid var(--chip-b);border-radius:12px}
+    .brand{font-weight:800;letter-spacing:.2px;margin-right:6px;opacity:.9}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;
+      border:1px solid var(--chip-b);border-radius:999px;background:var(--chip);
+      cursor:pointer;user-select:none}
+    .dot{width:8px;height:8px;border-radius:50%}
+    .tip{position:fixed;right:12px;top:56px;z-index:19;color:var(--muted);font-size:12px;opacity:.85}
+    /* canvas + loader */
+    canvas#three{position:fixed;inset:0;display:block;width:100%;height:100%}
+    .loader{position:fixed;inset:0;display:grid;place-items:center;z-index:40;
+      background:radial-gradient(ellipse at center,rgba(0,0,0,.28),rgba(0,0,0,.82) 60%,rgba(0,0,0,.92))}
+    .spinner{width:52px;height:52px;border:3px solid rgba(255,255,255,.18);
+      border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin:12px auto}
+    .msg{text-align:center;font-weight:700;letter-spacing:.3px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    /* footer */
-    .foot{position:fixed;left:0;right:0;bottom:10px;text-align:center;color:#7c808a;font-size:11px;opacity:.85}
+    .foot{position:fixed;left:0;right:0;bottom:8px;text-align:center;color:#7c8290;font-size:11px;opacity:.8}
     @media (max-width:640px){.tip{display:none}.brand{display:none}}
   </style>
 </head>
@@ -52,20 +41,184 @@
   <!-- UI -->
   <div class="topbar">
     <div class="brand">Virtual Tru Skool Mall</div>
-    <div id="chipRow" style="display:flex;gap:8px"></div>
+    <div id="chipRow" style="display:flex;gap:8px;flex-wrap:wrap"></div>
   </div>
-  <div class="tip">Tip: click a brand chip or 3D sign to open its link.</div>
+  <div class="tip">Tip: click a brand chip or a 3D sign to open its link.</div>
 
   <!-- 3D -->
   <canvas id="three"></canvas>
 
   <!-- Loader -->
   <div id="loader" class="loader" aria-live="polite">
-    <div class="spinner"></div>
-    <div class="msg">Loading…</div>
+    <div>
+      <div class="spinner"></div>
+      <div class="msg" id="loadMsg">Loading…</div>
+    </div>
   </div>
 
-  <!-- Your app code (leave as-is) -->
-  <script type="module" src="/src/main.js?v=3"></script>
+  <!-- App (no bare imports; we dynamically import from CDNs with fallback) -->
+  <script type="module">
+  // ---------- helpers ----------
+  const $ = s => document.querySelector(s);
+  const setLoad = t => ($("#loadMsg").textContent = t);
+  const showErr = t => { setLoad(t); console.error(t); };
+
+  // ---------- load three.js from 2 CDNs (fallback) ----------
+  async function loadThree() {
+    const bases = [
+      'https://cdn.jsdelivr.net/npm/three@0.159.0',
+      'https://unpkg.com/three@0.159.0'
+    ];
+    let last;
+    for (const base of bases) {
+      try {
+        const THREE        = await import(`${base}/build/three.module.js`);
+        const { OrbitControls } = await import(`${base}/examples/jsm/controls/OrbitControls.js`);
+        const { GLTFLoader }    = await import(`${base}/examples/jsm/loaders/GLTFLoader.js`);
+        return { THREE, OrbitControls, GLTFLoader };
+      } catch (e) { last = e; }
+    }
+    throw last ?? new Error('CDN blocked');
+  }
+
+  // ---------- boot ----------
+  (async () => {
+    setLoad('Loading 3D engine…');
+    let THREE, OrbitControls, GLTFLoader;
+    try {
+      ({ THREE, OrbitControls, GLTFLoader } = await loadThree());
+    } catch (e) {
+      showErr('Error loading 3D libs. Disable ad/script blockers or refresh.');
+      throw e;
+    }
+
+    // WebGL support
+    const canvas = $('#three');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false, powerPreference:'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0c10);
+
+    // Camera + controls
+    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
+    camera.position.set(0, 2.2, 6);
+    scene.add(camera);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.target.set(0, 1.4, 0);
+
+    // Lights (bright & clean)
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x222233, 1.0);
+    const dir  = new THREE.DirectionalLight(0xffffff, 1.2);
+    dir.position.set(5, 8, 3);
+    const amb  = new THREE.AmbientLight(0xffffff, .25);
+    scene.add(hemi, dir, amb);
+
+    // Floor
+    const floorGeo = new THREE.CircleGeometry(12, 64);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x12141a, metalness:.0, roughness:.9 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI/2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Ring glow
+    const ringGeo = new THREE.RingGeometry(5.6, 5.8, 64);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x1c2533, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI/2;
+    ring.position.y = 0.01;
+    scene.add(ring);
+
+    // Stores
+    setLoad('Loading brands…');
+    let STORES = [];
+    try {
+      const res = await fetch('/src/stores.json', { cache:'no-store' });
+      STORES = await res.json();
+    } catch (e) {
+      // minimal demo brands if /src/stores.json missing
+      STORES = [
+        { id:'faithfully-faded', name:'Faithfully Faded', logo:'/assets/images/faithfully-faded.png', color:'#213a8f', link:'https://www.faithfully-faded.com' },
+        { id:'concrete-rose',   name:'Concrete Rose',     logo:'/assets/images/concrete-rose.png',   color:'#bb3a45', link:'https://concrete-rose.world' },
+        { id:'cafe-sativa',     name:'Café Sativa',       logo:'/assets/images/cafe-sativa.png',     color:'#56a06a', link:'https://cafe-sativa-llc-uzn6.b12sites.com/' }
+      ];
+    }
+
+    // UI chips
+    const chips = $('#chipRow');
+    for (const s of STORES) {
+      const el = document.createElement('div');
+      el.className='chip';
+      el.dataset.id = s.id;
+      el.innerHTML = `<span class="dot" style="background:${s.color}"></span><span>${s.name}</span>`;
+      el.onclick = () => window.open(s.link, '_blank', 'noopener');
+      chips.appendChild(el);
+    }
+
+    // Signs around a circle
+    const loader = new THREE.TextureLoader();
+    const group = new THREE.Group();
+    scene.add(group);
+
+    const R = 5.2, H = 1.6;
+    STORES.forEach((s, i) => {
+      const a = (i/STORES.length) * Math.PI*2;
+      const x = Math.cos(a)*R, z = Math.sin(a)*R;
+      const w = 1.1, h = 1.4;
+
+      const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(w+0.1, h+0.1, 0.08),
+        new THREE.MeshStandardMaterial({ color: 0x1e2330, metalness:.1, roughness:.6 })
+      );
+      frame.position.set(x, H, z);
+      frame.lookAt(0, H, 0);
+      group.add(frame);
+
+      const tex = loader.load(s.logo, undefined, undefined, () => console.warn('Logo missing:', s.logo));
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const sign = new THREE.Mesh(
+        new THREE.PlaneGeometry(w, h),
+        new THREE.MeshBasicMaterial({ map: tex, toneMapped:false })
+      );
+      sign.position.set(0, 0, 0.046); // sit inside frame
+      frame.add(sign);
+      sign.userData = { link: s.link };
+    });
+
+    // Click to open
+    const ray = new THREE.Raycaster();
+    const v2 = new THREE.Vector2();
+    function onClick(e){
+      const rect = renderer.domElement.getBoundingClientRect();
+      v2.x = ((e.clientX - rect.left)/rect.width)*2 - 1;
+      v2.y = -((e.clientY - rect.top)/rect.height)*2 + 1;
+      ray.setFromCamera(v2, camera);
+      const hits = ray.intersectObjects(group.children, true);
+      const item = hits.find(h => h.object.userData?.link);
+      if (item) window.open(item.object.userData.link, '_blank', 'noopener');
+    }
+    addEventListener('click', onClick);
+
+    // Resize
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // Run
+    $('#loader').style.display = 'none';
+    (function loop(){
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(loop);
+    })();
+  })().catch(err => console.error(err));
+  </script>
+
+  <div class="foot">Tru Skool • three.js • Netlify-ready</div>
 </body>
 </html>
