@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Truskool Mall — WebXR Demo</title>
+    <style>
+      html,body { margin: 0; height: 100%; overflow: hidden; background: #111; }
+      #overlay {
+        position: absolute;
+        left: 12px;
+        top: 12px;
+        color: #eee;
+        font-family: system-ui, sans-serif;
+        z-index: 10;
+        background: rgba(0,0,0,0.35);
+        padding: 8px 10px;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="overlay">Truskool Mall — Press Enter VR (if available)</div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
