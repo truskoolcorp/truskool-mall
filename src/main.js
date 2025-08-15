@@ -1,3 +1,4 @@
+// src/main.js
 import * as THREE from '/vendor/three/build/three.module.js';
 import { OrbitControls } from '/vendor/three/examples/jsm/controls/OrbitControls.js';
 // import { GLTFLoader } from '/vendor/three/examples/jsm/loaders/GLTFLoader.js';
