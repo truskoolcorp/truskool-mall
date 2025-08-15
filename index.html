@@ -4,22 +4,31 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Virtual Tru Skool Mall</title>
-  <meta name="description" content="Virtual Tru Skool Mall" />
+
+  <link rel="icon" href="/favicon.ico" />
+  <meta name="color-scheme" content="dark light" />
   <style>
-    html,body{height:100%}body{margin:0;background:#0c0c0f;color:#e8e8ef;overflow:hidden;
-      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    #three{position:fixed;inset:0;display:block;width:100%;height:100%}
-    #loader{position:fixed;inset:0;display:grid;place-items:center;color:#e8e8ef}
-    #loader.hide{opacity:0;visibility:hidden;transition:opacity .2s ease}
+    :root { color-scheme: dark; }
+    html,body { margin:0; height:100%; background:#0b0d10; }
+    #topbar {
+      position:fixed; inset:16px 16px auto 16px;
+      padding:10px 14px; border-radius:12px; background:#0f1318cc;
+      color:#cfd7e6; font:600 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      backdrop-filter: blur(6px);
+    }
+    #loader {
+      position: fixed; inset: 0; display: grid; place-items: center;
+      color:#cfd7e6; font:500 14px system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    canvas#three { position:fixed; inset:0; display:block; }
   </style>
 </head>
 <body>
-  <canvas id="three"></canvas>
+  <div id="topbar">Virtual Tru Skool Mall</div>
   <div id="loader">Loading…</div>
+  <canvas id="three"></canvas>
 
-  <!-- Only this script. No import map, no inline JS -->
-<!-- in index.html -->
-<script type="module" src="/src/main.js?v=7"></script>
-
+  <!-- IMPORTANT: external module, with a cache-busting query -->
+  <script type="module" src="/src/main.js?v=9"></script>
 </body>
 </html>
