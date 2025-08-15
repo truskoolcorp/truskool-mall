@@ -1,24 +1,18 @@
-[build]
-  publish = "."
-
+# netlify.toml
 [[headers]]
   for = "/*"
   [headers.values]
-  # tighten as needed; keep NO inline JS
-  Content-Security-Policy = """
+  Content-Security-Policy = '''
     default-src 'self';
     script-src 'self' https://cdn.jsdelivr.net;
-    connect-src 'self';
-    img-src 'self' data: blob: https:;
+    connect-src 'self' https://cdn.jsdelivr.net;
+    img-src 'self' data: https:;
     style-src 'self' 'unsafe-inline';
-    font-src 'self' data: https://fonts.gstatic.com;
-    worker-src 'self' blob:;
-    object-src 'none';
+    font-src 'self' data:;
     frame-ancestors 'self';
     base-uri 'self';
-    upgrade-insecure-requests;
-  """
-  Referrer-Policy = "strict-origin-when-cross-origin"
+    object-src 'none';
+  '''
   X-Content-Type-Options = "nosniff"
-  X-Frame-Options = "SAMEORIGIN"
-  Permissions-Policy = "accelerometer=(), camera=(), microphone=(), geolocation=()"
+  Referrer-Policy = "strict-origin-when-cross-origin"
+  Permissions-Policy = "camera=(), microphone=(), geolocation=()"
