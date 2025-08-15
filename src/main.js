@@ -1,3 +1,6 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // Self-healing loader: try local import map first; if it fails, re-inject a CDN import map and retry.
 async function loadThreeBundle() {
   try {
