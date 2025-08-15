@@ -1,22 +1,22 @@
+# Serve from the repo root (no build step)
 [build]
-  publish = "."
+  publish = "./"
 
+# Cache static libs a bit
+[[headers]]
+  for = "/vendor/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Import maps and modules should be same-origin and JSON
+[[headers]]
+  for = "/src/importmap.json"
+  [headers.values]
+    Content-Type = "application/importmap+json; charset=utf-8"
+
+# Tight CSP that still allows external module file *and* your JSON import map
 [[headers]]
   for = "/*"
   [headers.values]
-  # Strict but Import-Map friendly (no inline scripts required)
-  Content-Security-Policy = '''
-    default-src 'self';
-    script-src 'self';
-    connect-src 'self';
-    img-src 'self' data:;
-    style-src 'self' 'unsafe-inline';
-    font-src 'self' data:;
-    object-src 'none';
-    base-uri 'self';
-    frame-ancestors 'self';
-    worker-src 'self' blob:;
-  '''
-  X-Content-Type-Options = "nosniff"
-  Referrer-Policy = "no-referrer"
-  Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self';"
+    X-Content-Type-Options = "nosniff"
