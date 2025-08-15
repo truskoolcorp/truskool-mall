@@ -1,1 +1,50 @@
-# Truskool Mall — Three.js + WebXR starter\n\nThis is a minimal starting point to build a virtual shopping mall using Three.js + WebXR.\n\nFeatures included:\n- Three.js scene with WebXR enabled\n- VRButton to enter/exit VR\n- Controller visuals and a simple point-and-teleport mechanic\n- GLTF loader for adding shop models (place assets in /public/assets)\n\nHow to run\n1. Install:\n   npm install\n\n2. Start dev server (Vite):\n   npm run dev\n\n3. Open in a compatible browser:\n   - Use `https://localhost` or `http://localhost` (WebXR works on secure contexts except on localhost)\n   - Recommended: Chrome with WebXR / Oculus Browser on Quest / Edge with WebXR support\n\nWhere to put assets\n- Place GLTF/GLB files in /public/assets (Vite serves the public folder as root)\n- The starter code tries to load `/assets/mall_centerpiece.glb` — replace with your own asset or remove that call\n\nRecommended next steps\n- Replace placeholder shops with optimized GLTF shop models\n- Build a navigation mesh for free movement or more robust teleporting (navmesh + pathfinding)\n- Add product interaction UI (gaze / controller ray) using three-mesh-ui or HTML panels in world-space\n- Implement LOD, texture atlases and mesh instancing for performance\n- Add server-side API for dynamic shop/product content\n- Consider accessibility: seated mode, locomotion options, comfort mode, subtitles\n\nNotes\n- WebXR requires HTTPS in production; localhost is allowed for development.\n- Test on target devices early (Quest/Meta Browser, Pico, or PC + headset) — behavior differs per device.
+# Truskool Mall — Three.js + WebXR starter
+
+A minimal starting point to build a virtual shopping mall using Three.js + WebXR. This starter demonstrates an approach to combine a Three.js scene with WebXR entry, basic controller visuals, and simple product presentation.
+
+## Features
+- Three.js scene with WebXR enabled
+- VRButton to enter/exit VR
+- Basic controller visuals and point-and-teleport locomotion
+- GLTF/GLB loader for shop models (place assets in `public/assets`)
+- Simple product presentation panels and interaction stubs
+- Vite dev server for fast iteration and static file serving
+- Basic README and project metadata
+
+## Quick start
+1. Install dependencies
+   - npm install
+2. Run dev server (Vite)
+   - npm run dev
+3. Open in a compatible browser:
+   - Use `https://localhost` or `http://localhost` during development.
+   - Recommended: Chrome with WebXR / Oculus Browser / Edge with WebXR support.
+
+## Project structure
+- `index.html` — app entry
+- `src/` — source code (Three.js + app)
+- `public/assets/` — place GLTF/GLB model files here (Vite serves this folder as root)
+- `package.json` — scripts & dependencies
+
+## Assets
+- Place GLTF/GLB files in `public/assets/` (example placeholder: `assets/mall_centerpiece.glb`)
+- Replace placeholder models with optimized GLTF shop models for better performance
+
+## Recommended browser & devices
+- Chrome with WebXR support (desktop + headset)
+- Oculus Browser (Quest/Meta) — excellent for testing VR sessions
+- Edge with WebXR support on compatible devices
+- Note: WebXR behavior differs per device and browser — test early on target devices (Quest, Pico, or PC + headset).
+
+## Notes & recommendations
+- WebXR requires HTTPS in production; localhost is allowed for development.
+- Implement LOD, texture atlases, and mesh instancing for large scenes.
+- Consider server-side API for dynamic product/shop content.
+- Accessibility: provide seated/standing locomotion options, comfort modes, and subtitles where applicable.
+
+## Contributing
+- Open a PR against `main` with a clear description and testing notes.
+- Prefer small, focused PRs for features and performance improvements.
+
+## License
+- MIT
