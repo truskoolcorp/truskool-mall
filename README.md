@@ -1,23 +1,19 @@
-# Virtual Tru Skool Mall (Three.js Starter)
+# Virtual Tru Skool Mall (Turnkey)
 
-A lightweight, production-ready Three.js mall starter you can deploy to Netlify/Vercel
-with **no build step**. Just serve `index.html` from the root.
+Static three.js showroom (no build step).
 
 ## Run locally
 ```bash
-# Python
 python -m http.server 5173
 # then open http://localhost:5173
 ```
 
-## Deploy
-- **Netlify**: Site settings → Build & deploy → Publish directory: `.`
-- **Vercel**: New Project → `Import` and set Framework as `Other` so it serves static root.
+## Deploy to Netlify
+- Build command: (leave blank)
+- Publish directory: `.`
 
-## Customize
-- **Brands**: Edit `src/stores.json`. Place logo PNGs in `assets/images/` and reference them.
-- **Portal arch**: Drop a GLB named `portal.glb` into `assets/models/`.
-- **Lighting/positions**: Tweak values in `src/main.js`.
+## Add a portal model (optional)
+Place `assets/models/portal.glb` (if present the code would load it; otherwise a simple frame is shown).
 
-This template lazy-loads Three.js modules from a CDN with a backup CDN. If both fail,
-the UI stays up and shows a helpful message in the loader.
+## Brands
+Edit `src/stores.json`. Logos live in `assets/images/*.png`.
