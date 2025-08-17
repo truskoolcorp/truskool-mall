@@ -3,49 +3,49 @@
     "id": "faithfully-faded",
     "name": "Faithfully Faded",
     "logo": "/assets/images/faithfully-faded.png",
-    "color": "#213a8f",
-    "link": "https://www.faithfully-faded.com"
+    "link": "https://www.faithfully-faded.com",
+    "color": "#213a8f"
   },
   {
     "id": "concrete-rose",
     "name": "Concrete Rose",
     "logo": "/assets/images/concrete-rose.png",
-    "color": "#bb3a45",
-    "link": "https://concrete-rose.world"
+    "link": "https://concrete-rose.world",
+    "color": "#bb3a45"
   },
   {
     "id": "cafe-sativa",
-    "name": "Caf\u00e9 Sativa",
+    "name": "Café Sativa",
     "logo": "/assets/images/cafe-sativa.png",
-    "color": "#56a06a",
-    "link": "https://cafe-sativa-llc-uzn6.b12sites.com/"
+    "link": "https://cafe-sativa-llc-uzn6.b12sites.com/",
+    "color": "#56a06a"
   },
   {
     "id": "wanderlust",
     "name": "Wanderlust",
     "logo": "/assets/images/wanderlust.png",
-    "color": "#d6a65f",
-    "link": "https://example.com/wanderlust"
+    "link": "https://example.com",
+    "color": "#d2a84c"
   },
   {
     "id": "hoe",
     "name": "H.O.E.",
     "logo": "/assets/images/hoe.png",
-    "color": "#b256b2",
-    "link": "https://example.com/hoe"
+    "link": "https://example.com",
+    "color": "#7a6cff"
   },
   {
-    "id": "tru-skool-records",
+    "id": "trs-records",
     "name": "Tru Skool Records",
-    "logo": "/assets/images/tru-skool-records.png",
-    "color": "#6aa0ff",
-    "link": "https://example.com/records"
+    "logo": "/assets/images/truskool-records.png",
+    "link": "https://example.com",
+    "color": "#ff6a88"
   },
   {
     "id": "glyph",
     "name": "Glyph",
     "logo": "/assets/images/glyph.png",
-    "color": "#f77e3e",
-    "link": "https://example.com/glyph"
+    "link": "https://example.com",
+    "color": "#00bcd4"
   }
 ]
