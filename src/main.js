@@ -1,7 +1,7 @@
 import * as THREE from './three.module.js'; // Fixed path for browser
 
 // Fetch store data
-fetch('stores.json')
+fetch('./src/stores.json')
   .then(response => response.json())
   .then(data => {
     const mallContainer = document.getElementById('mall');
