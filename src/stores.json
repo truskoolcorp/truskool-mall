@@ -25,7 +25,7 @@
     "name": "Wanderlust",
     "logo": "/assets/images/wanderlust.png",
     "color": "#d6a65f",
-    "link": "https://truskoolcorp.wixsite.com/wanderlust"
+    "link": "https://example.com"
   },
   {
     "id": "hoe",
@@ -46,6 +46,6 @@
     "name": "Glyph",
     "logo": "/assets/images/glyph.png",
     "color": "#f77e3e",
-    "link": "https://truskoolcorp.wixstudio.com/glyph"
+    "link": "https://example.com"
   }
 ]
