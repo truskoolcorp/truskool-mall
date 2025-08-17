@@ -36,7 +36,7 @@ async function start() {
   // Fetch stores
   try {
     const res = await fetch('/src/stores.json', { cache: 'no-store' });
-    STORES = await res.json();
+    STORES = (await res.json()).filter(store => store.logo && store.name && store.link);
   } catch (e) {
     console.error(e);
     showErr('Could not load stores.json'); throw e;
