@@ -1,4 +1,4 @@
-import * as THREE from './three.module.js'; // or correct relative path
+import * as THREE from '../three.module.js'; // Go up one level from /src/
 
 document.addEventListener('DOMContentLoaded', () => {
   fetch('./src/stores.json')
