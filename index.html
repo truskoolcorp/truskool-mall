@@ -1,55 +1,17 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Virtual Tru Skool Mall</title>
-  <meta name="description" content="Virtual Tru Skool Mall — static three.js showroom" />
+  <meta charset="UTF-8" />
+  <title>Simple Mall</title>
   <style>
-    :root{
-      --bg:#0b0c10; --panel:#12131a; --text:#e9ebef; --muted:#9aa0a6;
-      --chip:#1a1c24; --chip-b:#2a2e3a; --accent:#87b2ff;
-    }
-    html,body{height:100%}
-    body{margin:0;background:radial-gradient(ellipse at center, #0d0f15 0%, #090a0f 70%);color:var(--text);
-         font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    /* top bar */
-    .topbar{position:fixed;left:12px;right:12px;top:12px;display:flex;gap:10px;align-items:center;z-index:20;
-      background:rgba(18,19,26,.55);border:1px solid var(--chip-b);border-radius:12px;padding:8px 10px;backdrop-filter:blur(6px)}
-    .brand{font-weight:800;letter-spacing:.2px;opacity:.95;margin-right:6px}
-    .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--chip-b);
-      background:var(--chip);cursor:pointer;user-select:none}
-    .chip .dot{width:8px;height:8px;border-radius:50%;opacity:.95}
-    .chip span{opacity:.9}
-    .tip{position:fixed;top:12px;right:12px;color:var(--muted);font-size:12px;z-index:19;
-      background:rgba(18,19,26,.55);border:1px solid var(--chip-b);border-radius:10px;padding:6px 10px;backdrop-filter:blur(6px)}
-    canvas#three{position:fixed;inset:0;display:block;width:100%;height:100%}
-    .loader{position:fixed;inset:0;display:grid;place-items:center;z-index:40;background:rgba(0,0,0,.65);transition:opacity .25s ease}
-    .loader.hide{opacity:0;visibility:hidden}
-    .spinner{width:54px;height:54px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;
-      animation:spin 1s linear infinite;margin:8px auto}
-    .load-msg{color:#fff;text-align:center;font-weight:700}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .foot{position:fixed;left:0;right:0;bottom:10px;text-align:center;color:#7c808a;font-size:11px;opacity:.8;pointer-events:none}
-    @media (max-width:640px){.brand{display:none}.tip{display:none}}
+    body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
+    #mall { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
+    .store { width: 100px; height: 100px; background: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .store img { width: 40px; height: 40px; object-fit: contain; }
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="brand">Virtual Tru Skool Mall</div>
-    <div id="chipRow" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-  </div>
-  <div class="tip">Tip: click a brand chip or a 3D sign to open its link.</div>
-  <canvas id="three"></canvas>
-  <div id="loader" class="loader" aria-live="polite">
-    <div>
-      <div class="spinner"></div>
-      <div class="load-msg">Loading…</div>
-    </div>
-  </div>
-  <div class="foot">Tru Skool • three.js • Netlify-ready • Add avatars later</div>
-
-  <!-- App -->
-  <script type="module" src="/src/main.js"></script>
+  <div id="mall">Loading...</div>
+  <script type="module" src="/main.js"></script>
 </body>
 </html>

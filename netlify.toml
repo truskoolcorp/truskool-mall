@@ -1,12 +1,7 @@
-# Static site — publish directory is project root
 [build]
-  publish = "."
+publish = "."
 
 [[headers]]
   for = "/*"
   [headers.values]
-    # Allow ESM from self + CDNs, images & blobs, and inline styles for our simple UI
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    X-Frame-Options = "SAMEORIGIN"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; connect-src 'self'; img-src * data:;"
