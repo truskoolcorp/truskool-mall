@@ -27,7 +27,7 @@
     "id": "wanderlust",
     "name": "Wanderlust",
     "logo": "/assets/images/wanderlust.png",
-    "link": "#",
+    "link": "https://truskoolcorp.wixsite.com/wanderlust",
     "color": "#d98e2c",
     "angle": 60
   },
@@ -35,7 +35,7 @@
     "id": "hoe",
     "name": "H.O.E.",
     "logo": "/assets/images/hoe.png",
-    "link": "#",
+    "link": "https://hoeonline.us/",
     "color": "#8f21a8",
     "angle": -60
   },
@@ -43,7 +43,7 @@
     "id": "tru-skool-records",
     "name": "Tru Skool Records",
     "logo": "/assets/images/tru-skool-records.png",
-    "link": "#",
+    "link": "https://flow.page/truskool",
     "color": "#2f9bd8",
     "angle": 90
   },
@@ -51,7 +51,7 @@
     "id": "glyph",
     "name": "Glyph",
     "logo": "/assets/images/glyph.png",
-    "link": "#",
+    "link": "https://truskoolcorp.wixstudio.com/glyph",
     "color": "#e25c2a",
     "angle": -90
   }
