@@ -1,268 +1,168 @@
-// Minimal, production-friendly Three.js scene for the Tru Skool mall.
-export default async function init() {
-  const sel = (q) => document.querySelector(q);
-  const loaderEl = sel('#loader');
-  const loaderMsg = sel('#loaderMsg');
-  const setMsg = (t) => loaderMsg.textContent = t;
+// Static mall app — no build step
+const sel = (q) => document.querySelector(q);
+const showErr = (msg) => { const el = sel('.load-msg'); el.textContent = msg; };
 
-  // Load brand data
-  let STORES = [];
+// Load Three from local vendor first, then CDN fallbacks
+async function loadThree() {
+  const bases = [
+    '/vendor/three', // if user drops local libs here later
+    'https://unpkg.com/three@0.159.0',
+    'https://cdn.jsdelivr.net/npm/three@0.159.0'
+  ];
+  let last;
+  for (const base of bases) {
+    try {
+      const THREE = await import(`${base}/build/three.module.js`);
+      const OrbitControls = await import(`${base}/examples/jsm/controls/OrbitControls.js`);
+      return { THREE, OrbitControls };
+    } catch (e) { last = e; }
+  }
+  throw last ?? new Error('CDN blocked');
+}
+
+let THREE, OrbitControls;
+let renderer, scene, camera, raycaster, mouse, tiles = [];
+let STORES = [];
+
+async function start() {
   try {
-    const res = await fetch('/src/stores.json', {cache:'no-store'});
+    ({ THREE, OrbitControls } = await loadThree());
+  } catch (e) {
+    console.error(e);
+    showErr('Error loading 3D libs. Disable ad/script blockers or refresh.');
+    throw e;
+  }
+
+  // Fetch stores
+  try {
+    const res = await fetch('/src/stores.json', { cache: 'no-store' });
     STORES = await res.json();
   } catch (e) {
     console.error(e);
-    setMsg('Could not load store data'); return;
+    showErr('Could not load stores.json'); throw e;
   }
 
-  // Build UI chips
-  const chips = sel('#chips');
+  // Build top chips
+  const chipRow = sel('#chipRow');
+  chipRow.innerHTML = '';
   for (const s of STORES) {
-    const el = document.createElement('div');
-    el.className = 'chip';
-    el.dataset.id = s.id;
-    el.innerHTML = `<span class="dot" style="background:${s.color}"></span>${s.name}`;
-    el.onclick = () => focusStore(s.id);
-    chips.appendChild(el);
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.dataset.id = s.id;
+    chip.innerHTML = `<div class="dot" style="background:${s.color}"></div><span>${s.name}</span>`;
+    chip.onclick = () => window.open(s.link, '_blank');
+    chipRow.appendChild(chip);
   }
 
-  // Load Three.js modules with CDN fallback
-  async function loadThree() {
-    const bases = ['https://unpkg.com','https://cdn.jsdelivr.net/npm'];
-    let last;
-    for (const base of bases) {
-      try {
-        const THREE = await import(`${base}/three@0.159.0/build/three.module.js`);
-        const { OrbitControls } = await import(`${base}/three@0.159.0/examples/jsm/controls/OrbitControls.js`);
-        const { GLTFLoader } = await import(`${base}/three@0.159.0/examples/jsm/loaders/GLTFLoader.js`);
-        const { RectAreaLightUniformsLib } = await import(`${base}/three@0.159.0/examples/jsm/lights/RectAreaLightUniformsLib.js`);
-        const { Sky } = await import(`${base}/three@0.159.0/examples/jsm/objects/Sky.js`);
-        return { THREE, OrbitControls, GLTFLoader, RectAreaLightUniformsLib, Sky };
-      } catch (e) { last = e; }
-    }
-    throw last ?? new Error('CDN blocked');
-  }
-
-  let THREE, OrbitControls, GLTFLoader, RectAreaLightUniformsLib, Sky;
-  try {
-    ({ THREE, OrbitControls, GLTFLoader, RectAreaLightUniformsLib, Sky } = await loadThree());
-  } catch (e) {
-    console.error(e);
-    setMsg('Error loading 3D libs. Check ad/script blockers or refresh.');
-    return;
-  }
-
-  // Setup renderer/canvas
+  // Three.js basics
   const canvas = sel('#three');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer = new THREE.WebGLRenderer({ antialias: true, canvas, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
 
-  // Scene & fog
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x0b0c10, 0.035);
+  scene = new THREE.Scene();
+  scene.background = null;
 
-  // Camera & controls
-  const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 3.4, 10);
+  camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200);
+  camera.position.set(0, 3.4, 8);
+  scene.add(camera);
 
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-  controls.target.set(0, 1.2, 0);
+  // Lights (bright & friendly)
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x222233, 1.05);
+  const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+  dir.position.set(3, 6, 4);
+  const fill = new THREE.PointLight(0xaabbff, 0.6);
+  fill.position.set(-4, 3, -2);
+  scene.add(hemi, dir, fill);
 
-  // Environment sky + soft ambient
-  const hemi = new THREE.HemisphereLight(0xaaccee, 0x202028, 0.35);
-  scene.add(hemi);
-
-  const dir = new THREE.DirectionalLight(0xffffff, 0.7);
-  dir.position.set(-4, 6, 3);
-  dir.castShadow = true;
-  dir.shadow.mapSize.set(1024,1024);
-  scene.add(dir);
-
-  // Rect area light support
-  RectAreaLightUniformsLib.init();
-
-  // Sky (physically-based) for gentle environment
-  const sky = new Sky();
-  sky.scale.setScalar(450000);
-  scene.add(sky);
-  const sun = new THREE.Vector3();
-  const phi = THREE.MathUtils.degToRad(85);
-  const theta = THREE.MathUtils.degToRad(180);
-  sun.setFromSphericalCoords(1, phi, theta);
-  sky.material.uniforms['sunPosition'].value.copy(sun);
-
-  // Ground (smooth dark)
-  const groundGeo = new THREE.CircleGeometry(30, 48);
-  const groundMat = new THREE.MeshStandardMaterial({ color: 0x0f1117, roughness: 1, metalness: 0 });
-  const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.rotation.x = -Math.PI/2;
-  ground.receiveShadow = true;
+  // Ground
+  const ggeo = new THREE.CircleGeometry(12, 64);
+  const gmat = new THREE.MeshStandardMaterial({ color: 0x101218, roughness: 0.9, metalness: 0.0 });
+  const ground = new THREE.Mesh(ggeo, gmat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = 0;
   scene.add(ground);
 
-  // Helpers
-  function makeTextTexture(text, color = '#ffffff') {
-    const padX = 24, padY = 12;
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const font = '600 46px system-ui,Segoe UI,Roboto,Helvetica,Arial';
-    ctx.font = font;
-    const metrics = ctx.measureText(text);
-    canvas.width = Math.ceil(metrics.width + padX * 2);
-    canvas.height = 72 + padY * 2;
-    // bg
-    ctx.fillStyle = 'rgba(20,20,26,0.85)';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    // text
-    ctx.fillStyle = color;
-    ctx.font = font;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, padX, canvas.height/2);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.anisotropy = 4;
-    tex.needsUpdate = true;
-    return tex;
-  }
+  // Controls
+  const controls = new OrbitControls.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1.6, 0);
+  controls.enableDamping = true;
+  controls.minDistance = 3;
+  controls.maxDistance = 18;
+  controls.maxPolarAngle = Math.PI * 0.49;
 
-  function makeLogoTexture(url, fallbackText, color) {
-    return new Promise((resolve) => {
-      const texLoader = new THREE.TextureLoader();
-      texLoader.load(url, (t) => { t.anisotropy = 4; resolve(t); }, undefined, () => {
-        resolve(makeTextTexture(fallbackText, color));
-      });
-    });
-  }
+  // Create brand stands
+  const loader = new THREE.TextureLoader();
+  const standGroup = new THREE.Group(); scene.add(standGroup);
 
-  // Build a brand sign (panel + post), with subtle light
-  async function buildSign(store, radius = 10, y = 1.2) {
-    const g = new THREE.Group();
-    const angle = (store.angle ?? 0) * Math.PI/180;
-    const x = radius * Math.sin(angle);
-    const z = radius * Math.cos(angle);
+  const radius = 6.2, tilt = -0.25;
+  for (let i = 0; i < STORES.length; i++) {
+    const s = STORES[i];
+    const angle = (i / STORES.length) * Math.PI * 2;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
 
-    g.position.set(x, 0, z);
-    g.lookAt(0,1,0);
+    const tex = loader.load(s.logo);
+    tex.colorSpace = THREE.SRGBColorSpace;
 
-    // Panel
-    const logo = await makeLogoTexture(store.logo, store.name, store.color);
-    const panelGeo = new THREE.PlaneGeometry(1.8, 1.2);
-    const panelMat = new THREE.MeshStandardMaterial({ map: logo, roughness: 0.8, metalness: 0.05 });
+    const panelGeo = new THREE.PlaneGeometry(1.6, 1.2, 1, 1);
+    const panelMat = new THREE.MeshStandardMaterial({ map: tex, metalness: 0.0, roughness: 0.95 });
     const panel = new THREE.Mesh(panelGeo, panelMat);
-    panel.position.set(0, y, 0);
-    panel.castShadow = true;
-    panel.userData = { link: store.link, id: store.id, type: 'panel' };
-    g.add(panel);
+    panel.position.set(x, 1.2, z);
+    panel.rotation.y = -angle + Math.PI / 2;
+    panel.rotation.x = tilt;
+    panel.userData = { link: s.link, id: s.id, name: s.name };
 
-    // Backplate (thin)
-    const backGeo = new THREE.BoxGeometry(1.85, 1.25, 0.05);
-    const backMat = new THREE.MeshStandardMaterial({ color: 0x111217, metalness: 0.1, roughness: 0.9 });
-    const back = new THREE.Mesh(backGeo, backMat);
-    back.position.set(0, y, -0.03);
-    back.castShadow = true;
-    g.add(back);
+    // simple stand
+    const barMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(s.color).convertSRGBToLinear(), metalness: 0.1, roughness: 0.8 });
+    const postGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.0, 16);
+    const post = new THREE.Mesh(postGeo, barMat);
+    post.position.copy(panel.position).add(new THREE.Vector3(-0.6, -0.8, 0));
+    post.rotation.y = panel.rotation.y;
 
-    // Post
-    const postGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.4, 16);
-    const post = new THREE.Mesh(postGeo, new THREE.MeshStandardMaterial({ color: 0x333844, metalness: 0.2, roughness: 0.8 }));
-    post.position.set(0, 0.55, -0.25);
-    post.castShadow = true;
-    g.add(post);
+    const post2 = post.clone();
+    post2.position.copy(panel.position).add(new THREE.Vector3(0.6, -0.8, 0));
 
-    // Rect fill light near the sign
-    const rect = new THREE.RectAreaLight(store.color ?? '#6aa0ff', 1.6, 1.6, 1.1);
-    rect.position.set(0, y+0.1, 0.85);
-    rect.lookAt(panel.position.clone().add(new THREE.Vector3(0,0,-0.5)));
-    g.add(rect);
-
-    // Label sprite above
-    const labelTex = makeTextTexture(store.name);
-    const labelMat = new THREE.SpriteMaterial({ map: labelTex, depthTest:false });
-    const label = new THREE.Sprite(labelMat);
-    label.scale.set( labelTex.image.width/200, labelTex.image.height/200, 1 );
-    label.position.set(0, y+0.9, 0);
-    g.add(label);
-
-    scene.add(g);
-    clickable.push(panel, back);
+    standGroup.add(panel, post, post2);
+    tiles.push(panel);
   }
 
-  // Portal arch (optional)
-  async function tryLoadPortal() {
-    const loader = new GLTFLoader();
-    try {
-      const url = '/assets/models/portal.glb';
-      await new Promise((res, rej) => {
-        fetch(url, { method: 'HEAD' }).then(r => r.ok ? res() : rej()).catch(rej);
-      });
-      loader.load('/assets/models/portal.glb', (gltf) => {
-        const arch = gltf.scene;
-        arch.position.set(0, 0, 0);
-        arch.scale.set(1.2, 1.2, 1.2);
-        arch.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-        scene.add(arch);
-      });
-    } catch {}
-  }
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  window.addEventListener('pointerdown', onClick);
 
-  // Build all signs
-  const clickable = [];
-  for (const s of STORES) await buildSign(s);
+  // Done loading
+  sel('#loader').classList.add('hide');
 
-  // Raycast clicks
-  const ray = new THREE.Raycaster();
-  const v2 = new THREE.Vector2();
-  function onClick(ev) {
+  function onClick(e){
     const rect = renderer.domElement.getBoundingClientRect();
-    v2.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
-    v2.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
-    ray.setFromCamera(v2, camera);
-    const hit = ray.intersectObjects(clickable, true)[0];
-    if (hit?.object?.userData?.link) {
-      window.open(hit.object.userData.link, '_blank');
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hit = raycaster.intersectObjects(tiles, true)[0];
+    if (hit) {
+      const { link } = hit.object.userData;
+      window.open(link, '_blank');
     }
   }
-  renderer.domElement.addEventListener('click', onClick);
 
-  // Focus a store by rotating controls target
-  function focusStore(id) {
-    const s = STORES.find(x => x.id === id); if (!s) return;
-    const targetAngle = (s.angle ?? 0) * Math.PI/180;
-    const r = 10;
-    const camGoal = new THREE.Vector3(r * Math.sin(targetAngle), camera.position.y, r * Math.cos(targetAngle));
-    const start = camera.position.clone();
-    const startTime = performance.now();
-    const dur = 650;
-    (function tween() {
-      const t = Math.min(1, (performance.now() - startTime) / dur);
-      camera.position.lerpVectors(start, camGoal, t);
-      controls.target.lerp(new THREE.Vector3(0,1.2,0), 0.1);
-      if (t < 1) requestAnimationFrame(tween);
-    })();
-  }
-
-  // Try optional portal
-  tryLoadPortal();
-
-  // Resize
-  function onResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-  window.addEventListener('resize', onResize);
-
-  // Animate
-  function tick() {
+  // Render loop
+  function tick(){
     controls.update();
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
   tick();
 
-  // Hide loader when ready-ish
-  setTimeout(() => loaderEl.classList.add('hide'), 300);
+  // Resize
+  addEventListener('resize', ()=>{
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
 }
+
+start().catch((e)=>{
+  console.error(e);
+  showErr('Error starting app (see console)');
+});
