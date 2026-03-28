@@ -2,16 +2,196 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Simple Mall</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TruSkool Mall — 3D Interactive Walkthrough</title>
+  <link rel="icon" href="/favicon.ico" />
   <style>
-    body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
-    #mall { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
-    .store { width: 100px; height: 100px; background: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .store img { width: 40px; height: 40px; object-fit: contain; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      overflow: hidden;
+      background: #0a0a12;
+      color: #fff;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- Loader ---------- */
+    #loader {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #0a0a12;
+      transition: opacity .6s ease, visibility .6s ease;
+    }
+    #loader.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+    #loader h1 {
+      font-size: 2.2rem; letter-spacing: .08em;
+      background: linear-gradient(135deg, #6aa0ff 0%, #f77e3e 50%, #bb3a45 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.2rem;
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid rgba(255,255,255,.1);
+      border-top-color: #6aa0ff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .load-msg {
+      margin-top: 1rem; font-size: .9rem; color: #888;
+    }
+
+    /* ---------- Canvas ---------- */
+    #three {
+      position: fixed; inset: 0; z-index: 0;
+      display: block; width: 100%; height: 100%;
+    }
+
+    /* ---------- Top Bar ---------- */
+    #topBar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      display: flex; align-items: center;
+      padding: 12px 20px;
+      background: linear-gradient(180deg, rgba(10,10,18,.92) 0%, rgba(10,10,18,0) 100%);
+      pointer-events: none;
+    }
+    #topBar .logo-text {
+      font-size: 1.1rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #6aa0ff, #f77e3e);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      pointer-events: auto;
+      margin-right: 24px;
+      white-space: nowrap;
+    }
+
+    /* ---------- Chip Row ---------- */
+    #chipRow {
+      display: flex; gap: 8px; overflow-x: auto;
+      pointer-events: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 4px 0;
+    }
+    #chipRow::-webkit-scrollbar { display: none; }
+    .chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      font-size: .8rem; color: #ccc;
+      cursor: pointer; white-space: nowrap;
+      transition: background .2s, border-color .2s, transform .15s;
+      user-select: none;
+    }
+    .chip:hover {
+      background: rgba(255,255,255,.15);
+      border-color: rgba(255,255,255,.25);
+      transform: translateY(-1px);
+    }
+    .chip .dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    /* ---------- Info Panel ---------- */
+    #infoPanel {
+      position: fixed; bottom: 24px; left: 50%; z-index: 10;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0; visibility: hidden;
+      display: flex; align-items: center; gap: 16px;
+      padding: 16px 24px;
+      background: rgba(16,16,28,.92);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      transition: opacity .3s, visibility .3s, transform .3s;
+      max-width: 420px;
+      pointer-events: auto;
+    }
+    #infoPanel.show {
+      opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
+    }
+    #infoPanel img {
+      width: 56px; height: 56px; object-fit: contain; border-radius: 8px;
+      background: rgba(255,255,255,.06);
+    }
+    #infoPanel .info-text h3 {
+      font-size: 1rem; margin-bottom: 4px;
+    }
+    #infoPanel .info-text p {
+      font-size: .78rem; color: #999; margin-bottom: 8px;
+    }
+    #infoPanel .visit-btn {
+      display: inline-block;
+      padding: 6px 16px;
+      font-size: .78rem; font-weight: 600;
+      color: #fff; background: linear-gradient(135deg, #6aa0ff, #3d7de0);
+      border: none; border-radius: 8px;
+      cursor: pointer; text-decoration: none;
+      transition: transform .15s;
+    }
+    #infoPanel .visit-btn:hover { transform: scale(1.04); }
+
+    /* ---------- Controls Hint ---------- */
+    #hint {
+      position: fixed; bottom: 24px; right: 24px; z-index: 10;
+      font-size: .72rem; color: #555;
+      pointer-events: none;
+      text-align: right;
+      line-height: 1.5;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 600px) {
+      #topBar { padding: 8px 12px; }
+      #topBar .logo-text { font-size: .9rem; margin-right: 12px; }
+      .chip { padding: 5px 10px; font-size: .72rem; }
+      #infoPanel { left: 12px; right: 12px; transform: translateX(0) translateY(20px); max-width: none; }
+      #infoPanel.show { transform: translateX(0) translateY(0); }
+      #hint { display: none; }
+    }
   </style>
 </head>
 <body>
-  <div id="mall">Loading...</div>
-  <script type="module" src="/main.js"></script>
+
+  <!-- Loader -->
+  <div id="loader">
+    <h1>TruSkool Mall</h1>
+    <div class="spinner"></div>
+    <p class="load-msg">Loading 3D experience…</p>
+  </div>
+
+  <!-- 3D Canvas -->
+  <canvas id="three"></canvas>
+
+  <!-- Top Bar -->
+  <div id="topBar">
+    <span class="logo-text">TruSkool Mall</span>
+    <div id="chipRow"></div>
+  </div>
+
+  <!-- Info Panel (appears on hover/click of a store) -->
+  <div id="infoPanel">
+    <img id="infoImg" src="" alt="" />
+    <div class="info-text">
+      <h3 id="infoName"></h3>
+      <p id="infoDesc"></p>
+      <a id="infoLink" class="visit-btn" href="#" target="_blank" rel="noopener">Visit Store →</a>
+    </div>
+  </div>
+
+  <!-- Controls hint -->
+  <div id="hint">
+    Drag to look around<br/>
+    Scroll to zoom<br/>
+    Click a store to explore
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
