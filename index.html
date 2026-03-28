@@ -8,8 +8,8 @@
   <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
-      "three/": "https://unpkg.com/three@0.159.0/"
+      "three": "/vendor/three/three.module.js",
+      "three/": "/vendor/three/"
     }
   }
   </script>
@@ -201,5 +201,15 @@
   </div>
 
   <script type="module" src="/src/main.js"></script>
+  <script>
+    // Fallback: if the 3D module fails to load, show an error instead of spinning forever
+    setTimeout(function() {
+      var loader = document.getElementById('loader');
+      if (loader && !loader.classList.contains('hide')) {
+        var msg = loader.querySelector('.load-msg');
+        if (msg) msg.textContent = 'Taking longer than expected — please refresh or check your browser console.';
+      }
+    }, 15000);
+  </script>
 </body>
 </html>
