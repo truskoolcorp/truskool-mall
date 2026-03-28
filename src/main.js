@@ -1,29 +1,13 @@
 // TruSkool Mall — 3D Interactive Walkthrough
-// No build step required; loads Three.js from vendor or CDN
+// Uses import map defined in index.html for Three.js resolution
+
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const sel = (q) => document.querySelector(q);
 const showErr = (msg) => { const el = sel('.load-msg'); if (el) el.textContent = msg; };
 
-/* ─── Load Three.js ─── */
-async function loadThree() {
-  const bases = [
-    '/vendor/three',
-    'https://unpkg.com/three@0.159.0',
-    'https://cdn.jsdelivr.net/npm/three@0.159.0'
-  ];
-  let last;
-  for (const base of bases) {
-    try {
-      const THREE = await import(`${base}/build/three.module.js`);
-      const { OrbitControls } = await import(`${base}/examples/jsm/controls/OrbitControls.js`);
-      return { THREE, OrbitControls };
-    } catch (e) { last = e; }
-  }
-  throw last ?? new Error('Could not load Three.js — try disabling ad-blockers.');
-}
-
 /* ─── Globals ─── */
-let THREE, OrbitControls;
 let renderer, scene, camera, controls, raycaster, mouse;
 let storeMeshes = [];     // clickable/hoverable meshes
 let STORES = [];
@@ -33,15 +17,6 @@ const clock = { elapsed: 0, delta: 0, prev: performance.now() / 1000 };
 
 /* ─── Main ─── */
 async function start() {
-  // Load Three.js
-  try {
-    ({ THREE, OrbitControls } = await loadThree());
-  } catch (e) {
-    console.error(e);
-    showErr('Error loading 3D engine. Try disabling ad-blockers or refresh.');
-    throw e;
-  }
-
   // Fetch store data
   try {
     const res = await fetch('/src/stores.json', { cache: 'no-store' });
