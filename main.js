@@ -1,6 +1,3 @@
-import * as THREE from './vendor/three/build/three.module.js';
-import { OrbitControls } from './vendor/three/examples/jsm/controls/OrbitControls.js';
-
 document.getElementById('mall').textContent = 'Loading stores...';
 
 fetch('/stores.json')
