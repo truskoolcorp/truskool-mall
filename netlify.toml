@@ -4,4 +4,4 @@ publish = "."
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; connect-src 'self'; img-src * data:;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' blob:; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src * data:; worker-src 'self' blob:;"

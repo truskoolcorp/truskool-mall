@@ -25,27 +25,27 @@
     "name": "Wanderlust",
     "logo": "/assets/images/wanderlust.png",
     "color": "#d6a65f",
-    "link": "https://example.com"
+    "link": "https://wanderlustfashionstore.com/"
   },
   {
     "id": "hoe",
     "name": "H.O.E.",
     "logo": "/assets/images/hoe.png",
     "color": "#b256b2",
-    "link": "https://hoeonline.us"
+    "link": "https://truskoolcorp.wixstudio.com/h-o-e"
   },
   {
     "id": "tru-skool-records",
     "name": "Tru Skool Records",
     "logo": "/assets/images/tru-skool-records.png",
     "color": "#6aa0ff",
-    "link": "https://example.com"
+    "link": "https://truskool.net/truskool-family"
   },
   {
     "id": "glyph",
     "name": "Glyph",
     "logo": "/assets/images/glyph.png",
     "color": "#f77e3e",
-    "link": "https://example.com"
+    "link": "https://truskoolcorp.wixstudio.com/glyph"
   }
 ]
